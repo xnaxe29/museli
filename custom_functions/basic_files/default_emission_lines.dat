@@ -1,0 +1,81 @@
+Index	Name	Lambda	action	l_kind	A_i	V_g_i	sig_g_i	fit_kind	AoN	Comment	comments_on_balmer	comments_on_tied	factor_for_tied	factor_fixed_for_tying
+## i_line name   lambda   action   l_kind   A_i       V_g_i   sig_g_i   fit_kind   AoN
+#               \AA      f/i/m    l/d#     1/rel2#   km/s    km/s      f/h/t
+#
+# Forbidden and Recombination lines - To share separate line-of-sight
+#                                     Gaussian profiles. Use a
+#                                     Ha/Hb=2.86 Balmer decrement
+#"														
+0	HeII	3203.15	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_paired1	1	TRUE
+1	[NeV]	3345.81	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_paired2	1	TRUE
+2	[NeV]	3425.81	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_init2	1	TRUE
+3	[OII]	3726.03	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_paired3	1	TRUE
+4	[OII]	3728.73	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_init3	1	TRUE
+5	[NeIII]	3868.69	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_paired4	1	TRUE
+6	[NeIII]	3967.4	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_init4	1	TRUE
+7	H5	3889.05	f	d24	0.037	0	10	f	4	Forbidden and Recombination lines	TRUE	tied_paired5	0.037	TRUE
+8	He	3970.07	f	d24	0.056	0	10	f	4	Forbidden and Recombination lines	TRUE	tied_paired5	0.056	TRUE
+9	Hd	4101.73	f	d24	0.091	0	10	f	4	Forbidden and Recombination lines	TRUE	tied_paired5	0.091	TRUE
+10	Hg	4340.46	f	d24	0.164	0	10	f	4	Forbidden and Recombination lines	TRUE	tied_paired5	0.164	TRUE
+11	[OIII]	4363.15	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_paired6	1	TRUE
+12	HeII	4685.74	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_init1	1	TRUE
+13	[ArIV]	4711.3	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_paired7	1	TRUE
+14	[ArIV]	4740.1	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_init7	1	TRUE
+15	Hb	4861.32	f	l	0.35	0	10	f	4	Forbidden and Recombination lines	TRUE	tied_paired5	0.35	TRUE
+16	[OIII]	4958.83	f	d17	0.35	0	10	t17	4	Forbidden and Recombination lines	FALSE	tied_paired6	0.35	TRUE
+17	[OIII]	5006.77	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_init6	1	TRUE
+18	[NI]	5197.9	f	l	1	0	10	t17	4	Forbidden and Recombination lines	FALSE	tied_paired8	1	TRUE
+19	[NI]	5200.39	f	l	1	0	10	t17	4	Forbidden and Recombination lines	FALSE	tied_init8	1	TRUE
+20	HeI	5875.6	f	l	1	0	10	t25	4	Forbidden and Recombination lines	FALSE	tied_init9	1	TRUE
+21	[OI]	6300.2	f	l	1	0	10	t25	4	Forbidden and Recombination lines	FALSE	tied_paired10	1	TRUE
+22	[OI]	6363.67	f	d21	0.333	0	10	t25	4	Forbidden and Recombination lines	FALSE	tied_init10	0.333	TRUE
+23	[NII]	6547.96	f	d25	0.34	0	10	t25	4	Forbidden and Recombination lines	FALSE	tied_paired11	0.34	TRUE
+24	Ha	6562.8	f	l	1	0	10	f	4	Forbidden and Recombination lines	TRUE	tied_init5	1	TRUE
+25	[NII]	6583.34	f	l	1	0	10	f	4	Forbidden and Recombination lines	FALSE	tied_init11	1	TRUE
+26	[SII]	6716.31	f	l	1	0	10	t25	4	Forbidden and Recombination lines	FALSE	tied_paired12	1	FALSE
+27	[SII]	6730.68	f	l	1	0	10	t25	4	Forbidden and Recombination lines	FALSE	tied_init12	1	FALSE
+30	[ArIII]	7135.67	f	l	1	0	10	t25	4	Forbidden and Recombination lines	FALSE	tied_init13	1	TRUE
+# Mask regions affected by VLT-AO lasers														
+#														
+60	sky	5775	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+61	sky	5780	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+62	sky	5800	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+63	sky	5820	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+64	sky	5840	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+65	sky	5860	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+66	sky	5880	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+67	sky	5900	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+68	sky	5920	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+69	sky	5940	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+70	sky	5960	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+71	sky	5980	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+72	sky	6000	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+73	sky	6020	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+74	sky	6040	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+75	sky	6048	m	l	1	0	10	f	4	VLT-AO lasers affected regions	FALSE	NA	1	TRUE
+# Sky lines - used to mask out regions affected by an imperfect														
+#             subtraction of the sky emission. Sky lines may also be														
+#             fitted instead of being subtracted.														
+#														
+90	sky	5577	m	l	1	0	10	f	4	Sky lines	FALSE	NA	1	TRUE
+91	sky	6300	m	l	1	0	10	f	4	Sky lines	FALSE	NA	1	TRUE
+92	sky	6363	m	l	1	0	10	f	4	Sky lines	FALSE	NA	1	TRUE
+# NaD - use to exclude regions affected by interstellar absorption, or														
+#       to reproduce such features through the use of negative														
+#       Gaussians, sharing the same velocity profile														
+#														
+100	NaI	5890	m	l	-1	0	10	t101	4	NaD interstellar absorption	FALSE	NA	1	TRUE
+101	NaI	5896	m	l	-1	0	10	f	4	NaD interstellar absorption	FALSE	NA	1	TRUE
+# BLR - to share the same position and width, but not necessarily														
+#       abiding to the same Balmer decrement as for the narrow														
+#       recombination lines														
+#														
+209	Hd_br	4101.73	m	l	1	0	1000	t224	4	BLR regions	FALSE	NA	1	TRUE
+210	Hg_br	4340.46	m	l	1	0	1000	t224	4	BLR regions	FALSE	NA	1	TRUE
+215	Hb_br	4861.32	m	l	1	0	1000	t224	4	BLR regions	FALSE	NA	1	TRUE
+224	Ha_br	6562.8	m	l	1	0	1000	f	4	BLR regions	FALSE	NA	1	TRUE
+# [OIII] blue wings - use a negative V_g offset to help achieving the														
+#                     desired profile.														
+#														
+316	[OIII]w	4958.83	m	d317	0.35	-200	10	f	4	[OIII] blue wings	FALSE	NA	0.35	TRUE
+317	[OIII]w	5006.77	m	l	1	-200	10	f	4	[OIII] blue wings	FALSE	NA	1	TRUE
