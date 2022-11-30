@@ -1,0 +1,2 @@
+spectres==2.1.1
+vorbin==3.1.4

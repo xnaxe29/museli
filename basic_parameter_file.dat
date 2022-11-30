@@ -1,0 +1,68 @@
+#muse_data_filename: /Users/adarshranjan/Desktop/main_projects/Abell2670-3_Project/other/a2670-3_data_files/a2670-3/a2670-3.fits
+#observed_instrument: VLT-MUSE
+#sky_spectra_file: /Users/adarshranjan/Desktop/main_projects/Abell2670-3_Project/other/a2670-3_data_files/a2670-3/muse_sky_spectra_new.dat
+lick_index_file: /Users/adarshranjan/Desktop/main_projects/Abell2670-3_Project/main_work/fitting/museli/databases/galaxy_lines_rev2.tsv
+lick_index_species_list: [4, 6, 10, 12, 16]
+#lick_idx_for_halpha: Lick index specifying the position of Halpha in lick_index_species_list. Since Halpha is the most important line both in emission and absorption, it will be important to extracting basic information for halpha for binning and other analysis 
+lick_idx_for_halpha: 4
+#
+quiet: False
+spectral_smoothing: 1
+redshift_val: 0.07527116015236746
+#
+#binning_type: 'None', 'square', 'advanced', 'voronoi'
+#binning_type: voronoi
+#binning_type: advanced
+binning_type: square
+#binning_type: None
+#
+#binning_quant: 'int(side/2)' for square, 'bin_chopping_angle' for advanced, 'SNR limit' or 'EW significance' for voronoi,  
+binning_quant: 20
+#binning_quant: 15
+#binning_quant: 0
+#region_of_binning_interest: [0, 0, -1, -1] 
+#region_of_binning_interest_type: 'logical' or 'physical'
+#region_of_binning_interest_type: logical
+#
+#voronoi_snr_type: 'snr' or 'ew'
+voronoi_snr_type: snr
+#voronoi_snr_type: ew
+#
+#binning_radius_list: 'radius list[]' for advanced binning
+binning_radius_list: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 500]
+#binning_radius_list: []
+center_coordinate_for_advanced_binning: [168, 162]
+ellipse_angle_for_advanced_binning: 0
+#
+#window_for_choosing_snr_in_binning: The code will automatically decide a center position. This indicates the number 'n' for window such that data and noise will be picked up from median(data[center-n: center+n]) and median(noise[center-n: center+n])
+window_for_choosing_snr_in_binning: 100
+#
+#
+#
+#
+#execution_type: 'snr_map', 'fit'
+#execution_type: snr_map
+execution_type: fit
+#execution_fit_type: 'auto', 'absorption', 'emission'
+execution_fit_type: auto
+#execution_fit_type: absorption
+#execution_fit_type: emission
+#emission_fit_type: 'ppxf', 'custom'
+#emission_fit_type: ppxf
+emission_fit_type: custom
+center_list_names: ['H_beta4861', '[NII]6548', 'H_alpha6563', '[NII]6583', '[SII]6716', '[SII]6731']
+center_list: [4861.333, 6548.050, 6562.819, 6583.460, 6716.440, 6730.810]
+comments_on_balmer: [True, False, True, False, False, False]
+comments_on_tied: ['tied_init1', 'tied_init2', 'tied_paired1', 'tied_paired2', 'tied_init3', 'tied_paired3']
+factor_for_tied: [1., 1., 2.86, 2.96, 1., 1.]
+factor_fixed_for_tying: [True, True, True, True, False, False]
+#factor_fixed_for_tying: [False, False, False, False, False, False]
+ppxf_stars_comp: 1
+ppxf_gas_comp: 1
+ppxf_emission_tie_balmer: True
+ppxf_emission_limit_doublets: True
+#st_age_list_start: [0.0, 0.1, 0.5, 1.0, 5.0, 10.0]
+#
+#
+#
+#
