@@ -1,6 +1,3 @@
-# museli
-program to analyse MUSE-IFU galaxy cubes for stellar absorption and gas emission fitting 
-
        ___           ___           ___           ___           ___             
       /\__\         /\__\         /\  \         /\  \         /\__\      ___   
      /::|  |       /:/  /        /::\  \       /::\  \       /:/  /     /\  \  
@@ -52,6 +49,9 @@ An easy way to do this is through conda using the help of the following commands
 
 4. Activate the environment, "museli_env"
 ->conda activate museli_env
+
+4.1 Make Sure pip is installed 
+-> python3 -m ensurepip
 
 5. Install additional pip requirements using file - "museli_pip_requirements.txt" on the conda environment, "museli_env" - 
 ->python3 -m pip install -r museli_pip_requirements.txt
@@ -178,6 +178,9 @@ Allowed values: {'snr_map', 'fit'}; Default: snr_map
 
 21. execution_fit_type: Type of fitting to be done: stellar absorption ('absorption'), gas emission ('emission') or automatic estimation using equivalent width sign ('auto')
 Allowed values: {'auto', 'absorption', 'emission'}; Default: auto
+
+21.2 decider_ew: If execution_fit_type is 'auto', then decider_ew decides whether a spaxel has to be fitted for emission (<decider_ew) or absorption (>decider_ew)
+Allowed values: {float}; Default: 0.0
 
 22. emission_fit_type: Type of emission fitting to be done: using ppxf ('ppxf') or in-house code ('custom')
 Allowed values: {'ppxf', 'custom'}; Default: custom
@@ -327,6 +330,11 @@ F. README.dat: Readme file
 G. basic_parameter_file.dat: File showing all basic parameter keys (for additional convenience to users). Users can copy and modify this to their needs.
 
 
+IMPORTANT NOTES:
+
+1. 'clean_data' function defaults nan and empty elements as 1e-6 for data and 1e-5 for error. If this needs to be changed, please change it in 'basic_functions' module.
+2. 'FWHM' value less than 4.0 (in km/s) gives error while running custom emission line fitting. For now, the code by default sets FWHM to 4.0 if the value drops before 4.0. We are investigating the cause for this and will hopefully solve this in the coming updates.
+3. 
 
 
  
