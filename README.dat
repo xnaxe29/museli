@@ -50,6 +50,9 @@ An easy way to do this is through conda using the help of the following commands
 4. Activate the environment, "museli_env"
 ->conda activate museli_env
 
+4.1 Make Sure pip is installed 
+-> python3 -m ensurepip
+
 5. Install additional pip requirements using file - "museli_pip_requirements.txt" on the conda environment, "museli_env" - 
 ->python3 -m pip install -r museli_pip_requirements.txt
 
