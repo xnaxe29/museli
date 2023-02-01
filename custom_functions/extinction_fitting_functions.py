@@ -1,7 +1,8 @@
 import numpy as np
 from scipy import interpolate
 from os import path
-from basic_functions import *
+#from basic_functions import *
+import basic_functions as bf
 quite_val = False
 
 
@@ -120,7 +121,7 @@ def spline_part_new_fit(wave, extinction_class_string, c3_fit_new):
 		else:
 			y[i] = y2[i-position]
 	y_k_lambda_V = y
-	y_k_lambda_V = flip(y_k_lambda_V, 0)
+	y_k_lambda_V = bf.flip(y_k_lambda_V, 0)
 	return (y_k_lambda_V)
 #########################################REDDENING_BACKBONE_DLA#########################################
 
@@ -168,7 +169,7 @@ def spline_part_new_fit_qso(wave):
 		else:
 			y[i] = y2[i-position]
 	y_k_lambda_V = y
-	y_k_lambda_V = flip(y_k_lambda_V, 0)
+	y_k_lambda_V = bf.flip(y_k_lambda_V, 0)
 	return (y_k_lambda_V)
 
 #########################################REDDENING_BACKBONE_QSO#########################################

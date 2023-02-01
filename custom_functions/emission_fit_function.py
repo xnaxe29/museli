@@ -1,9 +1,18 @@
+import numpy
 import numpy as np
 from os import path
 from scipy.optimize import curve_fit
-from extinction_fitting_functions import *
-from basic_functions import *
-from ppxf_fitting_functions import *
+import pyneb as pn
+from astropy.cosmology import Planck15 as LCDM
+#from extinction_fitting_functions import *
+import extinction_fitting_functions as eff
+#from basic_functions import *
+import basic_functions as bf
+#from ppxf_fitting_functions import *
+#import ppxf_fitting_functions as pff
+import get_data_from_file as gdff
+from astropy.constants import c as c_ms
+c_kms = float(c_ms.value / 1e3)
 quite_val = False
 
 
@@ -38,38 +47,39 @@ class fitClass:
 		else:
 			coeff_val = coeff
 		amp_array_rev = retrieve_all_amplitude_list_rev2(list(amp_array), number_of_narrow_components, number_of_wide_components, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, comments_on_tied, comments_on_balmer)
-		cont_array = chebyshev_disp(wave_array, coeff_val)
+		cont_array = bf.chebyshev_disp(wave_array, coeff_val)
 		count_amp = 0
-		#print_cust(f'{len(center_list)}, {len(comments_on_balmer)}', quiet_val=quiet_val)
+		#bf.print_cust(f'{len(center_list)}, {len(comments_on_balmer)}', quiet_val=quiet_val)
 		for j in range(len(center_list)):
 			centre = center_list[j]*(1.+redshift_val)
-			vel_array = vel_prof(wave_array, centre)
+			vel_array = bf.vel_prof(wave_array, centre)
 			count = 0
 			if (comments_on_balmer[j]):
 				for k in range(number_of_narrow_components):
-					group_prof += gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
+					group_prof += bf.gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
 					count+=1
 					count_amp+=1
 				for l in range(number_of_wide_components):
-					group_prof += gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
+					group_prof += bf.gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
 					count+=1
 					count_amp+=1
 			else:
 				for m in range(number_of_narrow_components):
-					#print_cust(f'{count}, {count_amp}', quiet_val=quiet_val)
-					group_prof += gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
+					#bf.print_cust(f'{count}, {count_amp}', quiet_val=quiet_val)
+					group_prof += bf.gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
 					count+=1
 					count_amp+=1
 		group_prof+=cont_array
 		reddening_array = [reddening_val, 1.0, 0.0, 0.0]
-		group_prof_adv = func_6(wave_array/(1.+redshift_val), group_prof, *reddening_array)
+		group_prof_adv = eff.func_6(wave_array/(1.+redshift_val), group_prof, *reddening_array)
 		group_prof_adv_rev = group_prof_adv + flux_sky
-		group_prof_convolved = convolved_prof5(wave_array, group_prof_adv_rev, resolution)
+		group_prof_convolved = bf.convolved_prof5(wave_array, group_prof_adv_rev, resolution)
 		return (group_prof_convolved)
 
 def fitting_function_rev(popt_init, datax, datay, yerror, amp_length, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp, coeff_init_val, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, **kwargs):
 	quiet_val = kwargs.get('quiet_val', True)  # quiet_val
 	FWHM_gal = kwargs.get('FWHM_gal', 5.0)  # FWHM_gal
+	#Revising FWHM_gal if it is less than 4.0 because it throws error in calculations
 	if (FWHM_gal<4.0):
 		FWHM_gal = 4.0
 	resolution = c_kms/FWHM_gal
@@ -98,7 +108,7 @@ def fitting_function_rev(popt_init, datax, datay, yerror, amp_length, index_for_
 	redshift_val = kwargs.get('redshift_val', 0.0)  # redshift_val
 	window_for_fit = kwargs.get('window_for_fit', 2000.0)  # window_for_fit
 	stopping_number_for_continuum = kwargs.get('stopping_number_for_continuum', 5e5)  # stopping_number_for_continuum
-	center_init_array_tmp, sigma_init_array_tmp = get_initial_kinematics_in_kms(int(number_of_narrow_components), int(number_of_wide_components))
+	center_init_array_tmp, sigma_init_array_tmp = bf.get_initial_kinematics_in_kms(int(number_of_narrow_components), int(number_of_wide_components))
 	center_init_array = kwargs.get('velocity_init', center_init_array_tmp)  # init_vel
 	sigma_init_array = kwargs.get('vel_disp_init', sigma_init_array_tmp)  # init_sigma
 	fit_continuum = kwargs.get('fit_continuum', True)  # fit_continuum
@@ -112,24 +122,23 @@ def fitting_function_rev(popt_init, datax, datay, yerror, amp_length, index_for_
 	non_coeff_elements = int(amp_length + ((number_of_narrow_components+number_of_wide_components)*2)+1)
 	coeff_len = len(popt_init[non_coeff_elements:])
 	if (fit_continuum):
-		print_cust('Fitting with continuum', quiet_val=quiet_val)
+		bf.print_cust('Fitting with continuum', quiet_val=quiet_val)
 		params_new = popt_init
 		bounds_lower, bounds_upper = get_bounds(amp_length, number_of_narrow_components, number_of_wide_components, coeff_len, center_list, factor_fixed_for_tying, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp, bound_lower_factor_for_tied, bound_upper_factor_for_tied, min_amp=minimum_amplitude_val, max_amp=maximum_amplitude_val, center_min_val=-window_for_fit, center_max_val=window_for_fit, fit_continuum=fit_continuum, fit_dust=fit_reddening_val, fit_velocity=fit_velocity_val, fit_vel_disp=fit_vel_disp_val, velocity_init=center_init_array, vel_disp_init=sigma_init_array, sigma_bound_narrow_min=sigma_bound_narrow_min, sigma_bound_narrow_max=sigma_bound_narrow_max, sigma_bound_wide_max=sigma_bound_wide_max, minimum_reddening_val=minimum_reddening_val, maximum_reddening_val=maximum_reddening_val, poly_bound_val_init=poly_bound_val, e_b_minus_v_init=e_b_minus_v_init)
 	else:
 		params_new = popt_init[0:non_coeff_elements]
 		bounds_lower, bounds_upper = get_bounds(amp_length, number_of_narrow_components, number_of_wide_components, coeff_len, center_list, factor_fixed_for_tying, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp, bound_lower_factor_for_tied, bound_upper_factor_for_tied, min_amp=minimum_amplitude_val, max_amp=maximum_amplitude_val, center_min_val=-window_for_fit, center_max_val=window_for_fit, fit_continuum=False, fit_dust=fit_reddening_val, fit_velocity=fit_velocity_val, fit_vel_disp=fit_vel_disp_val, velocity_init=center_init_array, vel_disp_init=sigma_init_array, sigma_bound_narrow_min=sigma_bound_narrow_min, sigma_bound_narrow_max=sigma_bound_narrow_max, sigma_bound_wide_max=sigma_bound_wide_max, minimum_reddening_val=minimum_reddening_val, maximum_reddening_val=maximum_reddening_val, poly_bound_val_init=poly_bound_val, e_b_minus_v_init=e_b_minus_v_init)
-		print_cust('Fitting without continuum', quiet_val=quiet_val)
+		bf.print_cust('Fitting without continuum', quiet_val=quiet_val)
 
 	params_new = params_new.astype(np.float64)
 	for i in range(len(params_new)):
 		if not (bounds_lower[i]<=params_new[i]<=bounds_upper[i]):
-			print_cust(f'Detected out of bound parameter.', quiet_val=quiet_val)
-			print_cust(f'{i}, {bounds_lower[i]}, {params_new[i]}, {bounds_upper[i]}', quiet_val=quiet_val)
-			print_cust('Fixing it....', quiet_val=quiet_val)
+			bf.print_cust(f'Detected out of bound parameter.', quiet_val=quiet_val)
+			bf.print_cust(f'{i}, {bounds_lower[i]}, {params_new[i]}, {bounds_upper[i]}', quiet_val=quiet_val)
+			bf.print_cust('Fixing it....', quiet_val=quiet_val)
 			bounds_lower[i] = params_new[i] - 1e-1
 			bounds_upper[i] = params_new[i] + 1e-1
-			print_cust(f'{i}, {bounds_lower[i]}, {params_new[i]}, {bounds_upper[i]}', quiet_val=quiet_val)
-
+			bf.print_cust(f'{i}, {bounds_lower[i]}, {params_new[i]}, {bounds_upper[i]}', quiet_val=quiet_val)
 
 	inst = fitClass()
 	inst.sky_flux = init_sky_flux
@@ -150,7 +159,7 @@ def fitting_function_rev(popt_init, datax, datay, yerror, amp_length, index_for_
 	try:
 		pfit, pcov = curve_fit(inst.gaus_group_with_cont_rev, datax, datay, p0=params_new, bounds=((bounds_lower), (bounds_upper)), sigma=yerror, maxfev=maxfev_val, method=method_str)
 	except RuntimeError:
-		print_cust('Error - curve_fit failed')
+		bf.print_cust('Error - curve_fit failed')
 		pfit = np.ones_like(params_new)
 		pcov = np.ones_like(params_new)
 
@@ -171,7 +180,7 @@ def get_line_flux(wave, flux, err, cont, fit, sky, center_array, sigma_array, ce
 	profile_meh_err = err / cont
 	wave_rest_meh = wave/(1.+redshift)
 	for meh in range(len(center_list)):
-		vel_array_meh = vel_prof(wave_rest_meh, center_list[meh])
+		vel_array_meh = bf.vel_prof(wave_rest_meh, center_list[meh])
 		idx1_meh = []
 		idx2_meh = []
 		for weh in range(len(center_array)):
@@ -206,31 +215,31 @@ def complex_fit_func(wave_init, flux_init, err_init, par_dict, **kwargs):
 	data_file1 = [wave_init, flux_init, err_init]
 	sky_file1 = [wave_init, flux_sky_init, flux_sky_init_err]
 	cont_file1 = [wave_init, cont_init1, cont_init_err]
-	wave, flux, err, FWHM_gal1, velscale1, normalising_factor1 = get_data_from_file_ppxf(data_file1, file_type, require_air_to_vaccum, extra_redshift, quiet=quiet_val, fit_type='custom')
+	wave, flux, err, FWHM_gal1, velscale1, normalising_factor1 = gdff.get_data_from_files(data_file1, file_type, require_air_to_vaccum, extra_redshift, quiet=quiet_val, fit_type='custom')
 	if (FWHM_gal1<4.0):
 		FWHM_gal1 = 4.0
 	resolution = float(c_kms / FWHM_gal1)
 
-	wave2, flux_sky, sky_flux_err, FWHM_gal2, velscale2, normalising_factor2 = get_data_from_file_ppxf(sky_file1, file_type, require_air_to_vaccum, extra_redshift, quiet=quiet_val, norm_fact=normalising_factor1, fit_type='custom')
+	wave2, flux_sky, sky_flux_err, FWHM_gal2, velscale2, normalising_factor2 = gdff.get_data_from_files(sky_file1, file_type, require_air_to_vaccum, extra_redshift, quiet=quiet_val, norm_fact=normalising_factor1, fit_type='custom')
 	sky_val = np.array(np.transpose([np.arange(0, len(wave2), 1), flux_sky]))
-	wave3, cont_init, cont_init_err, FWHM_gal3, velscale3, normalising_factor3 = get_data_from_file_ppxf(cont_file1, file_type, require_air_to_vaccum, extra_redshift, quiet=quiet_val, norm_fact=normalising_factor1, fit_type='custom')
+	wave3, cont_init, cont_init_err, FWHM_gal3, velscale3, normalising_factor3 = gdff.get_data_from_files(cont_file1, file_type, require_air_to_vaccum, extra_redshift, quiet=quiet_val, norm_fact=normalising_factor1, fit_type='custom')
 	continuum_fitted = cont_init
 
 	popt_init, masked_array, amp_init_array, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, coeff_init_val, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp = get_opt_param_array_rev2(wave, flux, cont_init, par_dict_rev['number_of_narrow_components'], par_dict_rev['number_of_wide_components'], par_dict_rev['center_list'], par_dict_rev['redshift_val'], par_dict_rev['comments_on_balmer'], par_dict_rev['comments_on_tied'], par_dict_rev['factor_for_tied'], par_dict_rev['e_b_minus_v_init'], par_dict_rev['window_for_fit'], par_dict_rev['stopping_number_for_continuum'], par_dict_rev['center_init_array'], par_dict_rev['sigma_init_array'])
 	amp_length = len(amp_init_array)
-	continuum = chebyshev_disp(wave[masked_array], coeff_init_val)
+	continuum = bf.chebyshev_disp(wave[masked_array], coeff_init_val)
 	flux_sky_orig = flux_sky[masked_array]
 
 	pfit_curvefit, perr_curvefit = fitting_function_rev(popt_init, wave[masked_array], flux[masked_array], err[masked_array], amp_length, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp, coeff_init_val, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, comments_on_tied=par_dict_rev['comments_on_tied'], comments_on_balmer=par_dict_rev['comments_on_balmer'], number_of_narrow_components=par_dict_rev['number_of_narrow_components'], number_of_wide_components=par_dict_rev['number_of_wide_components'], fit_continuum=par_dict_rev['fit_continuum_val'], fit_dust=par_dict_rev['fit_reddening_val'], sky_flux = flux_sky_orig, center_list=par_dict_rev['center_list'], factor_for_tied = par_dict_rev['factor_for_tied'], factor_fixed_for_tying = par_dict_rev['factor_fixed_for_tying'], redshift_val=par_dict_rev['redshift_val'], FWHM_gal=FWHM_gal1, quiet_val=quiet_val)
 	amp_array, center_array, sigma_array, reddening_val_fit, coeff_fit = get_params(pfit_curvefit, par_dict_rev['number_of_narrow_components'], par_dict_rev['number_of_wide_components'], par_dict_rev['center_list'], amp_length)
 	if (reddening_val_fit>par_dict_rev['maximum_accepted_reddening']):
-		print_cust(f'Reddening val: {reddening_val_fit} exceeded maximum accepted value... Reverting to fixed continuum and reddening fit')
+		bf.print_cust(f'Reddening val: {reddening_val_fit} exceeded maximum accepted value... Reverting to fixed continuum and reddening fit')
 		pfit_curvefit, perr_curvefit = fitting_function_rev(popt_init, wave[masked_array], flux[masked_array], err[masked_array], amp_length, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp, coeff_init_val, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, comments_on_tied=par_dict_rev['comments_on_tied'], comments_on_balmer=par_dict_rev['comments_on_balmer'], number_of_narrow_components=par_dict_rev['number_of_narrow_components'], number_of_wide_components=par_dict_rev['number_of_wide_components'], fit_continuum=False, fit_dust=False, center_list=par_dict_rev['center_list'], factor_for_tied = par_dict_rev['factor_for_tied'], factor_fixed_for_tying = par_dict_rev['factor_fixed_for_tying'], redshift_val=par_dict_rev['redshift_val'], FWHM_gal=FWHM_gal1, quiet_val=quiet_val)
-	print_cust('Fit complete... Saving results...', quiet_val=quiet_val)
+	bf.print_cust('Fit complete... Saving results...', quiet_val=quiet_val)
 	wave_fitted, res_fitted = plot_gaus_group_with_cont_rev(wave[masked_array], par_dict_rev['plot_fit_refined'], par_dict_rev['multiplicative_factor_for_plot'], par_dict_rev['center_list'], par_dict_rev['number_of_narrow_components'], par_dict_rev['number_of_wide_components'], amp_length, coeff_init_val, flux_sky_orig, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, par_dict_rev['comments_on_tied'], par_dict_rev['comments_on_balmer'], par_dict_rev['redshift_val'], resolution, *pfit_curvefit)
 	dof = len(flux[masked_array]) - len(pfit_curvefit)
 	red_chi_squared = np.sum( ( (flux[masked_array] - res_fitted)**2. / (err[masked_array])**2. )) / dof
-	print_cust(f'Reduced chi-sqaure: {red_chi_squared}', quiet_val=quiet_val)
+	bf.print_cust(f'Reduced chi-sqaure: {red_chi_squared}', quiet_val=quiet_val)
 	amp_array, center_array, sigma_array, reddening_val_fit, coeff_fit = get_params(pfit_curvefit, par_dict_rev['number_of_narrow_components'], par_dict_rev['number_of_wide_components'], par_dict_rev['center_list'], amp_length)
 	amp_array_rev = retrieve_all_amplitude_list_rev2(list(amp_array), par_dict_rev['number_of_narrow_components'], par_dict_rev['number_of_wide_components'], position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, par_dict_rev['comments_on_tied'], par_dict_rev['comments_on_balmer'])
 	amp_err_array, center_err_array, sigma_err_array, reddening_err_val_fit, coeff_err_fit = get_params(perr_curvefit, par_dict_rev['number_of_narrow_components'], par_dict_rev['number_of_wide_components'], par_dict_rev['center_list'], amp_length)
@@ -241,7 +250,7 @@ def complex_fit_func(wave_init, flux_init, err_init, par_dict, **kwargs):
 		coeff_val_fit = coeff_fit
 		coeff_err_val_fit = coeff_err_fit
 
-	continuum_fitted_partial = chebyshev_disp(wave[masked_array], coeff_val_fit)
+	continuum_fitted_partial = bf.chebyshev_disp(wave[masked_array], coeff_val_fit)
 	continuum_fitted[masked_array] = continuum_fitted_partial
 	res_fitted_full = np.zeros_like(wave)
 	res_fitted_full[masked_array] = res_fitted
@@ -268,7 +277,7 @@ def get_params(popt, number_of_narrow_components, number_of_wide_components, cen
 	center_len = int(amplitude_len+(number_of_narrow_components+number_of_wide_components))
 	sigma_len = int(center_len+(number_of_narrow_components+number_of_wide_components))
 	amp_array = popt[0:amplitude_len]
-	#print_cust(f'{type(amplitude_len)}, {type(center_len)}')
+	#bf.print_cust(f'{type(amplitude_len)}, {type(center_len)}')
 	center_array = popt[amplitude_len:center_len]
 	sigma_array = popt[center_len:sigma_len]
 	reddening_val = popt[sigma_len]
@@ -399,7 +408,7 @@ def make_table_with_result(wave_array, new_fitted_popt_param_array, center_list,
 	new_fitted_popt_param_array_rev = new_fitted_popt_param_array
 	for j in range(len(center_list)):
 		centre = center_list[j]*(1.+redshift_val)
-		vel_array = vel_prof(wave_array, centre)
+		vel_array = bf.vel_prof(wave_array, centre)
 		count = 0
 		if (comments_on_balmer[j]):
 			for k in range(number_of_narrow_components):
@@ -436,31 +445,31 @@ def plot_gaus_group_with_cont_rev(wave_array_rev, plot_fit_refined, multiplicati
 	else:
 		coeff_val = coeff
 	amp_array_rev = retrieve_all_amplitude_list_rev2(list(amp_array), number_of_narrow_components, number_of_wide_components, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, comments_on_tied, comments_on_balmer)
-	cont_array = chebyshev_disp(wave_array, coeff_val)
+	cont_array = bf.chebyshev_disp(wave_array, coeff_val)
 	count_amp = 0
 	for j in range(len(center_list)):
 		centre = center_list[j]*(1.+redshift_val)
-		vel_array = vel_prof(wave_array, centre)
+		vel_array = bf.vel_prof(wave_array, centre)
 		count = 0
 		if (comments_on_balmer[j]):
 			for k in range(number_of_narrow_components):
-				group_prof += gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
+				group_prof += bf.gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
 				count+=1
 				count_amp+=1
 			for l in range(number_of_wide_components):
-				group_prof += gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
+				group_prof += bf.gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
 				count+=1
 				count_amp+=1
 		else:
 			for m in range(number_of_narrow_components):
-				group_prof += gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
+				group_prof += bf.gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
 				count+=1
 				count_amp+=1
 	group_prof+=cont_array
 	reddening_array = [reddening_val, 1.0, 0.0, 0.0]
-	group_prof_adv = func_6(wave_array/(1.+redshift_val), group_prof, *reddening_array)
+	group_prof_adv = eff.func_6(wave_array/(1.+redshift_val), group_prof, *reddening_array)
 	group_prof_adv_rev = group_prof_adv + flux_sky
-	group_prof_convolved = convolved_prof5(wave_array, group_prof_adv_rev, resolution)
+	group_prof_convolved = bf.convolved_prof5(wave_array, group_prof_adv_rev, resolution)
 	return (wave_array, group_prof_convolved)
 
 #plot_gaus_group_with_cont_rev(wave_array_rev, plot_fit_refined, multiplicative_factor_for_plot, center_list, number_of_narrow_components, number_of_wide_components, amp_length, coeff_init, flux_sky, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, comments_on_tied, comments_on_balmer, redshift_val, resolution, *popt)
@@ -479,10 +488,10 @@ def get_opt_param_array_rev2(wave, flux, cont, number_of_narrow_components_init,
 	masked_array = numpy.zeros((len(wave)), dtype=bool)
 	for i in range(len(center_list_init)):
 		centre = center_list_init[i]*(1.+redshift_val)
-		vel_array = vel_prof(wave, centre)
+		vel_array = bf.vel_prof(wave, centre)
 		mask = (vel_array > -2*window_for_fit) & (vel_array < 2*window_for_fit)
 		masked_array[mask] = True
-	order_test_init, coeff_init_val = chebyshev_order(wave[masked_array], cont[masked_array], stopping_number=stopping_number_for_continuum)
+	order_test_init, coeff_init_val = bf.chebyshev_order(wave[masked_array], cont[masked_array], stopping_number=stopping_number_for_continuum)
 	popt_init.extend(coeff_init_val)
 	popt_init = np.nan_to_num(popt_init, copy=True, nan=1e-6, posinf=1e-6, neginf=1e-6)
 	return (popt_init, masked_array, amplitude_array, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, coeff_init_val, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp)
@@ -501,7 +510,7 @@ def get_fitting_amplitude_list_rev2(wave, flux, number_of_narrow_components_init
 	count_init = 0
 	count_paired = 0
 	for j in range(len(center_list_init)):
-		#print_cust(f'{type(wave)}, {type(center_list_init[j])}, {type(redshift_val)}')
+		#bf.print_cust(f'{type(wave)}, {type(center_list_init[j])}, {type(redshift_val)}')
 		idx_gen = np.searchsorted(wave, (center_list_init[j]*(1.+redshift_val)))
 		if (flux[idx_gen]<=0.0):
 			flux[idx_gen] = 0.01
@@ -593,7 +602,7 @@ def retrieve_all_amplitude_list_rev2(amplitude_array, number_of_narrow_component
 	for i in range(len(position_init_sorted)):
 		#rev_amp2.insert(int(position_final_sorted[i]), (rev_amp1[int(position_init_sorted[i])]+np.log10(total_index_sorted[i])))
 		for j in range(len(total_index_sorted)):
-			#print_cust(f'{position_final_sorted[i]}, {position_init_sorted[i]}, {total_index_sorted[i]}')
+			#bf.print_cust(f'{position_final_sorted[i]}, {position_init_sorted[i]}, {total_index_sorted[i]}')
 			rev_amp2.insert(int(position_final_sorted[i]), (rev_amp1[int(position_init_sorted[i])]+np.log10(total_index_sorted[j])))
 
 	rev_amp2 = np.nan_to_num(rev_amp2, copy=True, nan=1e-6, posinf=1e-6, neginf=1e-6)

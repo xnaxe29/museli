@@ -12,14 +12,28 @@ import os
 from os import path
 import sys
 import time
+from astropy.constants import c as c_ms
+c_kms = float(c_ms.value / 1e3)
+c = c_kms
+from astropy.constants import k_B
+k = float(k_B.value)
 quite_val = False
-c = 299792.458 # Speed in Light in Km/s
-c_kms = 299792.458 # Speed in Light in Km/s
-k = 1.38064852e-23 #Boltzmann's constant in m^2 kg s^(-2) K^(-1)
+#c = 299792.458 # Speed in Light in Km/s
+#c_kms = 299792.458 # Speed in Light in Km/s
+#k = 1.38064852e-23 #Boltzmann's constant in m^2 kg s^(-2) K^(-1)
 
 if not quite_val: warnings.simplefilter(action='ignore', category=FutureWarning)
 if not quite_val: np.warnings.filterwarnings('ignore', category=np.VisibleDeprecationWarning)
 if not quite_val: np.seterr(divide = 'ignore')
+
+# Disable Print
+def blockPrint():
+    sys.stdout = open(os.devnull, 'w')
+
+# Restore Print
+def enablePrint():
+    sys.stdout = sys.__stdout__
+
 
 def print_cust(print_str, **kwargs):
 	sleep_time = kwargs.get('sleep_time', 0.1)  # Sleep Time
@@ -285,6 +299,7 @@ def smooth_with_error(y, y_err, box_pts):
 def clean_data(data, **kwargs):
 	data_type = kwargs.get('type_of_data', 'data')  # Initial value for Velocity
 	data_val = kwargs.get('val_data', 1e-6)  # Initial value for Velocity
+	data = data.astype(np.float64)
 	data_1 = np.nan_to_num(data, nan=data_val, posinf=data_val, neginf=-data_val)
 	mask = np.where(data_1[:]=='')
 	data_1[mask] = data_val
@@ -292,7 +307,6 @@ def clean_data(data, **kwargs):
 	data_1[mask2] = data_val
 	if 'err' in data_type:
 		data_1[data_1<=0.]=data_val*10.
-	data_1.astype(np.float64)
 	return (data_1)
 
 ##################################CLEAN_DATA##################################
