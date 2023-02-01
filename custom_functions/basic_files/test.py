@@ -1,6 +1,15 @@
 import numpy as np
 import pandas as pd
 
+#file_path = 'default_sky.dat'
+file_path = 'muse_sky_spectra_new.dat'
+data = pd.read_csv(file_path, sep="\t", comment='#', encoding=None)
+print(data['wave'])
+print(data['sky_flux'])
+print(data['sky_flux_err'])
+
+quit()
+
 file_path = 'default_lick_indexes.dat'
 data = pd.read_csv(file_path, sep="\t", comment='#', encoding=None)
 #print(data['wave11'])
@@ -53,8 +62,3 @@ quit()
 #print(data['factor_fixed_for_tying'])
 
 
-file_path = 'default_sky.dat'
-data = pd.read_csv(file_path, sep="\t", comment='#', encoding=None)
-print(data['wave'])
-print(data['sky_flux'])
-print(data['sky_flux_err'])
