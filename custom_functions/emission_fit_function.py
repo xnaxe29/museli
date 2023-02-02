@@ -69,6 +69,10 @@ class fitClass:
 					group_prof += bf.gaus_prof_vel(vel_array, amp_array_rev[count_amp], center_array[count], sigma_array[count])
 					count+=1
 					count_amp+=1
+
+            #print (count)
+        #print (count_amp)
+        #quit()
 		group_prof+=cont_array
 		reddening_array = [reddening_val, 1.0, 0.0, 0.0]
 		group_prof_adv = eff.func_6(wave_array/(1.+redshift_val), group_prof, *reddening_array)
@@ -155,6 +159,8 @@ def fitting_function_rev(popt_init, datax, datay, yerror, amp_length, index_for_
 	inst.center_list = center_list
 	inst.number_of_narrow_components = number_of_narrow_components
 	inst.number_of_wide_components = number_of_wide_components
+    #print(params_new)
+    #quit()
 
 	try:
 		pfit, pcov = curve_fit(inst.gaus_group_with_cont_rev, datax, datay, p0=params_new, bounds=((bounds_lower), (bounds_upper)), sigma=yerror, maxfev=maxfev_val, method=method_str)
@@ -285,6 +291,9 @@ def get_params(popt, number_of_narrow_components, number_of_wide_components, cen
 		coeff=None
 	else:
 		coeff = popt[sigma_len+1:]
+
+	#print (amp_array, center_array, sigma_array, reddening_val, coeff)
+	#quit()
 	return(amp_array, center_array, sigma_array, reddening_val, coeff)
 
 def get_bounds(amp_length, number_of_narrow_components, number_of_wide_components, coeff_len, center_list, amp_ratio_fixed, idx_for_fixing_bounds_factor_init_narrow_comp, idx_for_fixing_bounds_factor_init_wide_comp, bound_lower_factor_for_tied_amp, bound_upper_factor_for_tied_amp, **kwargs):
@@ -567,11 +576,11 @@ def retrieve_all_amplitude_list_rev2(amplitude_array, number_of_narrow_component
 		wide_component_index = len(list(set(mask1) - (set(mask1) - set(mask2))))
 	else:
 		wide_component_index = 0
+
 	if (number_of_narrow_components_init):
 		narrow_component_index = len(mask1)
 	else:
 		narrow_component_index = 0
-	
 	total_index = []
 	if (wide_component_index):
 		index_for_wide_factor = amplitude_array[-wide_component_index:]
@@ -591,22 +600,21 @@ def retrieve_all_amplitude_list_rev2(amplitude_array, number_of_narrow_component
 			index_for_narrow_factor = [index_for_narrow_factor]
 		index_for_narrow_factor_rev = np.repeat(index_for_narrow_factor,number_of_narrow_components_init)
 		total_index.extend(index_for_narrow_factor_rev)
-
 	rev_amp1 = amplitude_array[:-(wide_component_index+narrow_component_index)]
 	rev_amp2 = rev_amp1
 	position_init = list(np.append(position_init_narrow_comp, position_init_wide_comp))
 	position_final = list(np.append(position_final_narrow_comp, position_final_wide_comp))
 	position_final_sorted = [x for _, x in sorted(zip(position_init, position_final))]
 	total_index_sorted = [x for _, x in sorted(zip(position_init, total_index))]
-	position_init_sorted = np.sort(position_init)
-	for i in range(len(position_init_sorted)):
-		#rev_amp2.insert(int(position_final_sorted[i]), (rev_amp1[int(position_init_sorted[i])]+np.log10(total_index_sorted[i])))
-		for j in range(len(total_index_sorted)):
-			#bf.print_cust(f'{position_final_sorted[i]}, {position_init_sorted[i]}, {total_index_sorted[i]}')
-			rev_amp2.insert(int(position_final_sorted[i]), (rev_amp1[int(position_init_sorted[i])]+np.log10(total_index_sorted[j])))
-
-	rev_amp2 = np.nan_to_num(rev_amp2, copy=True, nan=1e-6, posinf=1e-6, neginf=1e-6)
-	return(rev_amp2)
+	position_init_sorted = list(np.sort(position_init))
+	rev_amp3 = np.zeros([len(position_init_sorted)+len(position_final_sorted)])
+	counter_test = 0
+	for i in range(len(position_final_sorted)):
+		rev_amp3[position_final_sorted[i].astype(np.int32)] = rev_amp2[counter_test]+np.log10(total_index_sorted[counter_test])
+		rev_amp3[position_init_sorted[i].astype(np.int32)] = rev_amp2[counter_test]
+		counter_test+=1
+	rev_amp4 = np.nan_to_num(rev_amp3, copy=True, nan=1e-6, posinf=1e-6, neginf=1e-6)
+	return(rev_amp4)
 
 ##################################GET_OPTIMUM_PARAMETERS##################################
 ##################################EXTRA_FUNCTION_FOR_CUSTOM_EMISSION_FIT##################################

@@ -145,16 +145,25 @@ def stage_two_analysis(par_dict, new_filename, file_name_eq_width, quiet_val=Fal
 	lick_index_species_rev = np.array(lick_index_species[lick_index_species_list[:]])
 	mean_wave_list_rev = np.array(mean_wave_list_full[lick_index_species_list[:]])
 	bf.print_cust(f"Estimating EW for: {lick_index_species_rev}", quiet_val=quiet_val)
-	ew_map_array = np.zeros([len(mean_wave_list_rev), data_flattened_normalised.shape[1], 2])
+	ew_map_array = np.zeros([len(mean_wave_list_rev)+1, data_flattened_normalised.shape[1], 2])
 	bar = IncrementalBar('Countdown', max = int(data_flattened_normalised.shape[1]))
+	test_array = np.zeros([data_flattened_normalised.shape[1]])
+	wave_min = 7082.0
+	wave_max = 7107.0
+	idx1 = bf.find_nearest_idx(wave_rev, wave_min)
+	idx2 = bf.find_nearest_idx(wave_rev, wave_max)
 	#bar = IncrementalBar('Countdown', max = int(data_flattened_normalised.shape[1]/100))
 	for i in range(data_flattened_normalised.shape[1]):
-	#for i in range(0, data_flattened_normalised.shape[1], 100):
+		ew_map_array[-1, i, 0] = np.nansum(data_flattened_normalised[:, i], axis=(0))
+		ew_map_array[-1, i, 1] = np.nansum(data_err_flattened_normalised[:, i], axis=(0))
+		#for i in range(0, data_flattened_normalised.shape[1], 100):
 		bar.next()
 		for j in range(len(mean_wave_list_rev)):
 			ew_map_array[j, i, 0], ew_map_array[j, i, 1] = bf.get_equivalendth_width_rev(wave_rest, data_flattened_normalised[:, i], data_err_flattened_normalised[:, i], center=float(mean_wave_list_rev[j]), redshift=float(par_dict['redshift_val']))
 
-	ew_map_array_cube = ew_map_array.reshape((len(mean_wave_list_rev), data_rev_file.shape[1], data_rev_file.shape[2], 2))
+	ew_map_array_cube = ew_map_array.reshape((len(mean_wave_list_rev)+1, data_rev_file.shape[1], data_rev_file.shape[2], 2))
+    #ew_map_array_cube = np.transpose(ew_map_array_cube, axes=(0,2,1,3))
+    #ew_map_array_cube = np.flip(ew_map_array_cube, axes=(1))
 	#file_name_eq_width = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_eq_width.fits')
 	header_ew, header_ew_err, data_ew_file, err_ew_file = hff.copy_ifu_fits(str(par_dict['muse_data_filename']), file_name_eq_width)
 	with fits.open(file_name_eq_width, mode='update', output_verify='fix') as hdu_list:
@@ -389,9 +398,26 @@ def emission_fit(wave_rev, flux, err, par_dict, **kwargs):
 	quiet_val = kwargs.get('quiet_val', True)  # quiet_val
 	if ('custom'in par_dict['emission_fit_type']):
 		wave_fit, flux_fit, err_fit, continuum_fitted, res_fitted_full_fitted, masked_array, pfit_curvefit, perr_curvefit, line_flux, line_flux_err, red_chi_squared, amp_length = emff.complex_fit_func(wave_rev, flux, err, par_dict, FWHM_gal = FWHM_gal1, flux_sky = flux_sky1, cont_init = init_cont1, quiet_val=quiet_val)
-		solution_array = np.append(pfit_curvefit, line_flux)
+
+		popt_init, masked_array, amp_init_array, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, coeff_init_val, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp = emff.get_opt_param_array_rev2(wave_rev, flux, continuum_fitted, par_dict['number_of_narrow_components'], par_dict['number_of_wide_components'], par_dict['center_list'], par_dict['redshift_val'], par_dict['comments_on_balmer'], par_dict['comments_on_tied'], par_dict['factor_for_tied'], par_dict['e_b_minus_v_init'], par_dict['window_for_fit'], par_dict['stopping_number_for_continuum'], par_dict['center_init_array'], par_dict['sigma_init_array'])
+
+		amp_array, center_array, sigma_array, reddening_val_fit, coeff_fit = emff.get_params(pfit_curvefit, par_dict['number_of_narrow_components'], par_dict['number_of_wide_components'], par_dict['center_list'], amp_length)
+		amp_array_rev = emff.retrieve_all_amplitude_list_rev2(list(amp_array), par_dict['number_of_narrow_components'], par_dict['number_of_wide_components'], position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, par_dict['comments_on_tied'], par_dict['comments_on_balmer'])
+		amp_err_array, center_err_array, sigma_err_array, reddening_err_val_fit, coeff_err_fit = emff.get_params(perr_curvefit, par_dict['number_of_narrow_components'], par_dict['number_of_wide_components'], par_dict['center_list'], amp_length)
+		amp_err_array_rev = emff.retrieve_all_amplitude_list_rev2(list(amp_err_array), par_dict['number_of_narrow_components'], par_dict['number_of_wide_components'], position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, par_dict['comments_on_tied'], par_dict['comments_on_balmer'])
+		#solution_array = np.append(pfit_curvefit, line_flux)
+		solution_array = np.append(amp_array_rev, center_array)
+		solution_array = np.append(solution_array, sigma_array)
+		solution_array = np.append(solution_array, reddening_val_fit)
+        #solution_array = np.append(solution_array, coeff_fit)
 		solution_array = np.append(solution_array, red_chi_squared)
-		solution_err_array = np.append(perr_curvefit, line_flux_err)
+		#solution_err_array = np.append(perr_curvefit, line_flux_err)
+        #print (len(amp_array_rev), (len(center_array)*2), 2)
+		solution_err_array = np.append(amp_err_array_rev, center_err_array)
+		solution_err_array = np.append(solution_err_array, sigma_err_array)
+		solution_err_array = np.append(solution_err_array, reddening_err_val_fit)
+        #solution_err_array = np.append(solution_err_array, coeff_err_fit)
+		#solution_err_array = np.append(solution_err_array, red_chi_squared)
 		solution_err_array = np.append(solution_err_array, amp_length)
 		return (wave_fit, flux_fit, err_fit, continuum_fitted, res_fitted_full_fitted, masked_array, solution_array, solution_err_array)
 	elif ('ppxf'in par_dict['emission_fit_type']):
@@ -443,9 +469,14 @@ def get_output_filenames_and_arrays(dir_name_4, bin_num_unique, wave_rev, par_di
 		init_cont = np.ones_like(wave_rev)
 		popt_init, masked_array, amp_init_array, position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, coeff_init_val, index_for_fixing_bounds_factor_init_narrow_comp, index_for_fixing_bounds_factor_init_wide_comp = emff.get_opt_param_array_rev2(wave_rev, flux, init_cont, par_dict['number_of_narrow_components'], par_dict['number_of_wide_components'], par_dict['center_list'], par_dict['redshift_val'], par_dict['comments_on_balmer'], par_dict['comments_on_tied'], par_dict['factor_for_tied'], par_dict['e_b_minus_v_init'], par_dict['window_for_fit'], par_dict['stopping_number_for_continuum'], par_dict['center_init_array'], par_dict['sigma_init_array'])
 		center_list_len = len(par_dict['center_list'])
+		amp_array, center_array, sigma_array, reddening_val_fit, coeff_fit = emff.get_params(popt_init, par_dict['number_of_narrow_components'], par_dict['number_of_wide_components'], par_dict['center_list'], len(amp_init_array))
+		amp_array_rev = emff.retrieve_all_amplitude_list_rev2(list(amp_init_array), par_dict['number_of_narrow_components'], par_dict['number_of_wide_components'], position_init_narrow_comp, position_init_wide_comp, position_final_narrow_comp, position_final_wide_comp, par_dict['comments_on_tied'], par_dict['comments_on_balmer'])
+
 		bf.print_cust(f'{len(popt_init)}, {center_list_len}', quiet_val=quiet_val)
 		main_emission_result_cube_filename = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_binned_') + str(par_dict['binning_type']) + str('_snr_type_') + str(par_dict['voronoi_snr_type']) + str('_quant_') + str(int(par_dict['binning_quant'])) + str('_emission_type_') + str(par_dict['emission_fit_type'])  + str('_custom_emission_results') + str('.npy')
-		main_emission_result_cube = np.zeros([len(bin_num_unique), len(popt_init)+len(coeff_init_val)+len(par_dict['center_list'])+1, 2])
+		#main_emission_result_cube = np.zeros([len(bin_num_unique), len(popt_init)+len(coeff_init_val)+len(par_dict['center_list'])+1, 2])
+        #print (len(amp_array_rev), (len(center_array)*2), 2)
+		main_emission_result_cube = np.zeros([len(bin_num_unique), (len(amp_array_rev)+(len(center_array)*2)+2), 2])
 	elif ('ppxf'in par_dict['emission_fit_type']):
 		if (par_dict['ppxf_gas_comp']<1):
 			par_dict['ppxf_gas_comp']=1
@@ -663,10 +694,19 @@ def get_expanded_header_information_emission(wave, par_dict, **kwargs):
 			extra_label.extend([index_cust]*1)
 		header_information_emission.extend(['E(B-V)(gas)'])
 		extra_label.extend(['-']*1)
+		header_information_emission.extend(['coeff-']*len(coeff_fit))
+		index_cust = 0
+		for i in range(len(coeff_fit)):
+			index_cust+=1
+			extra_label.extend([index_cust]*1)
+		header_information_emission.extend(['chi_sq'])
+		extra_label.extend(['-']*1)
+
 		header_information_emission2 = [str(m)+str(n) for m,n in zip(header_information_emission,extra_label)]
 		header_information_err_emission2 = [s + "_err" for s in header_information_emission2]
 		header_information_emission3 = np.array(header_information_emission2)
 		header_information_err_emission3 = np.array(header_information_err_emission2)
+		header_information_err_emission3[-1] = "amp_length"
 	elif ('ppxf'in par_dict_rev['emission_fit_type']):
 		if (par_dict['ppxf_gas_comp']<1):
 			par_dict['ppxf_gas_comp']=1

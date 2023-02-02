@@ -388,7 +388,7 @@ def revise_dictionary(par_dict_init, dir_name_6):
 			par_dict_emission['st_age_list_start'] = par_dict_emission['st_age_list_start']
 			par_dict_emission['st_age_unique_end'] = par_dict_emission['st_age_unique_end']
 
-	default_lick_index_species_list = [65, 69, 80, 83, 88]
+	default_lick_index_species_list = [65, 69, 73, 74, 82, 85, 90]
 	if ('lick_index_species_list' not in par_dict_emission):
 		par_dict_emission['lick_index_species_list'] = list(default_lick_index_species_list)
 
