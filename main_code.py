@@ -9,6 +9,10 @@ import pyfiglet
 from astropy.table import Table
 from astropy.io import fits
 import numpy as np
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+from astropy.wcs import WCS
+
 #import pyfits
 from matplotlib.widgets import Slider, Button, RadioButtons, CheckButtons, RectangleSelector
 sys.path.append(str(sys.argv[2]) + '/custom_functions')
@@ -94,6 +98,8 @@ print (d2)
 print (d3)
 print (d4)
 quit()
+with fits.open(str(str(par_dict['muse_data_filename']))) as hdul:
+header_original = hdul[1].header
 muse_wcs = WCS(header_original).celestial
 data2d = np.nanmean(data_original_file, axis=(0))
 fig = plt.figure()
@@ -119,6 +125,7 @@ else:
 
 #######################EXECUTING_STAGE_ONE#######################
 
+
 '''
 #STAGE ONE LOOKS GOOD
 wave_min = 7082.0
@@ -127,21 +134,23 @@ fig, (ax1, ax2) = plt.subplots(2, sharex=True, sharey=True)
 
 header_original, header_original_err, data_original_file, err_original_file = hff.open_ifu_fits(str(par_dict['muse_data_filename']), str(par_dict['observed_instrument']))
 ra_array, dec_array, wave_array = hff.obtain_physical_axis(header_original)
-idx1 = find_nearest_idx(wave_array, wave_min)
-idx2 = find_nearest_idx(wave_array, wave_max)
+idx1 = bf.find_nearest_idx(wave_array, wave_min)
+idx2 = bf.find_nearest_idx(wave_array, wave_max)
 imdata1 = np.nanmedian(data_original_file[idx1:idx2, :, :,], axis=(0))
-im1 = ax1.imshow(imdata1, origin='lower', vmin=0, vmax=20)
-add_colorbar(im1)
+im1 = ax1.imshow(imdata1, origin='lower', vmin=0, vmax=500)
+bf.add_colorbar(im1)
 
 header_rev, header_rev_err, header_rev_cont, header_rev_fwhm, header_rev_velscale, header_rev_sky, data_rev_file, err_rev_file, cont_rev_file, fwhm_rev_file, velscale_rev_file, sky_rev_file = hff.open_ifu_fits_custom_file(new_filename)
 ra_rev, dec_rev, wave_rev = hff.obtain_physical_axis(header_rev)
-idx1 = find_nearest_idx(wave_rev, wave_min)
-idx2 = find_nearest_idx(wave_rev, wave_max)
+idx1 = bf.find_nearest_idx(wave_rev, wave_min)
+idx2 = bf.find_nearest_idx(wave_rev, wave_max)
 imdata2 = np.nanmedian(data_rev_file[idx1:idx2, :, :,], axis=(0))
-im2 = ax2.imshow(imdata2, origin='lower', vmin=0, vmax=20)
-add_colorbar(im2)
-plt.show()
-quit()
+im2 = ax2.imshow(imdata2, origin='lower', vmin=0, vmax=500)
+bf.add_colorbar(im2)
+#plt.show()
+plt.savefig('first_stage.pdf')
+plt.close()
+#quit()
 '''
 
 #######################EXECUTING_STAGE_TWO#######################
@@ -160,22 +169,56 @@ else:
 
 #######################EXECUTING_STAGE_TWO#######################
 
+quit()
 '''
 #To obtain EW information from EW data cube
 header_ew_original, header_ew_original_err, data_ew_original_file, err_ew_original_file = hff.open_ifu_fits(file_name_eq_width)
-fig = plt.figure()
-ax1 = fig.add_subplot(121)
-im1 = ax1.imshow(data_ew_original_file[-1, :, :], origin='lower', vmin=-10, vmax=1)
-divider = make_axes_locatable(ax1)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im1, cax=cax, orientation='vertical')
-ax2 = fig.add_subplot(122)
-im2 = ax2.imshow(err_ew_original_file[-1, :, :], origin='lower', vmin=-10, vmax=1)
-divider = make_axes_locatable(ax2)
-cax = divider.append_axes('right', size='5%', pad=0.05)
-fig.colorbar(im2, cax=cax, orientation='vertical')
-fig.suptitle(r'H$\alpha$ Equivalent Width Map (Data/Error)')
-plt.show()
+lick_index_species_list = par_dict['lick_index_species_list']
+lick_index_wave11, lick_index_wave12, lick_index_wave21, lick_index_wave22, lick_index_wave31, lick_index_wave32, lick_index_sign,lick_index_species, lick_index_reference = np.genfromtxt(str(par_dict['lick_index_file']), unpack=True, names=True, encoding=None, dtype=None)
+mean_wave_list_full = (lick_index_wave21 + lick_index_wave22) / 2.
+lick_index_species_rev = np.array(lick_index_species[lick_index_species_list[:]])
+with fits.open(str(str(par_dict['muse_data_filename']))) as hdul:
+    header_original = hdul[1].header
+muse_wcs = WCS(header_original).celestial
+print (lick_index_species_rev)
+#names_of_species = str(lick_index_species_rev[:]) + str(mean_wave_list_full.astype(np.int32)[:])
+#print (names_of_species)
+#quit()
+#print (data_ew_original_file.shape[0])
+fig, axs = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True, figsize=(15, 15),subplot_kw=dict(projection=muse_wcs))
+#ax1 = fig.add_subplot(121)
+counter_test = 0
+data_ew_original_file[data_ew_original_file<-1000.] = np.nan
+data_ew_original_file[data_ew_original_file>1000.0] = np.nan
+data_ew_original_file = np.abs(data_ew_original_file)
+count = 0
+counter_test = [0, 2, 3, 6]
+for i in range(2):
+    for j in range(2):
+        if ('5007' in  lick_index_species_rev[counter_test[count]]) or ('alpha' in  lick_index_species_rev[counter_test[count]]):
+            #im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], vmin=5, vmax=100, cmap='viridis')
+            im1 = axs[i, j].imshow(np.log10(data_ew_original_file[counter_test[count], :, :]), vmin=-1, vmax=2, cmap='viridis')
+        else:
+            #im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], vmin=0.1, vmax=100, cmap='viridis')
+            im1 = axs[i, j].imshow(np.log10(data_ew_original_file[counter_test[count], :, :]), vmin=-1, vmax=2, cmap='viridis')
+
+        divider = make_axes_locatable(axs[i, j])
+        cax = divider.append_axes('right', size='5%', pad=0.55)
+        fig.colorbar(im1, cax=cax, orientation='vertical')
+        axs[i, j].set_title(lick_index_species_rev[counter_test[count]])
+        #axs[i, j].invert_xaxis()
+        #counter_test+=1
+        count+=1
+
+#ax2 = fig.add_subplot(122)
+#im2 = ax2.imshow(err_ew_original_file[-1, :, :], origin='lower', vmin=-10, vmax=1)
+#divider = make_axes_locatable(ax2)
+#cax = divider.append_axes('right', size='5%', pad=0.05)
+#fig.colorbar(im2, cax=cax, orientation='vertical')
+#fig.suptitle(r'H$\alpha$ Equivalent Width Map (Data/Error)')
+#plt.show()
+plt.savefig('test_fig.pdf', dpi=100)
+quit()
 '''
 
 #To obtain information from revised data

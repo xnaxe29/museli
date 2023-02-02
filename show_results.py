@@ -25,8 +25,8 @@ from matplotlib import gridspec
 import matplotlib as mpl
 mpl.rcParams['xtick.direction'] = 'in'
 mpl.rcParams['ytick.direction'] = 'in'
-from kinemetry import kinemetry
-import kinemetry as kin
+#from kinemetry import kinemetry
+#import kinemetry as kin
 import time
 from os import path
 from progress.bar import IncrementalBar
@@ -306,7 +306,8 @@ def func_plot_one_d(event):
 	st_age_unique1 = plot_file_abs[10:16, iy, ix, 0]
 	st_mass_unique1 = plot_file_abs[16:22, iy, ix, 0]
 	st_lum_unique1 = plot_file_abs[22:28, iy, ix, 0]
-	redshift_val = 0.07527116015236746
+	#redshift_val = 0.07527116015236746
+	redshift_val = 0.050200146
 	figname1d_rev = figname1d + str(int(iy)) + str("_") + str(int(ix)) + str(".pdf")
 	ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, st_age_unique=st_age_unique1, st_mass_unique=st_mass_unique1, st_lum_unique=st_lum_unique1, figname=figname1d_rev, redshift=redshift_val)
 plot_one_d_button.on_clicked(func_plot_one_d)

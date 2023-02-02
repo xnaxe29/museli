@@ -1,0 +1,47 @@
+
+Log details for the run on: 2023-02-01 14:16:36.291886
+
+Log details for the run on: 2023-02-01 14:17:14.170906
+
+Log details for the run on: 2023-02-01 14:17:51.686803
+
+
+       ___           ___           ___           ___           ___             
+      /\__\         /\__\         /\  \         /\  \         /\__\      ___   
+     /::|  |       /:/  /        /::\  \       /::\  \       /:/  /     /\  \  
+    /:|:|  |      /:/  /        /:/\ \  \     /:/\:\  \     /:/  /      \:\  \ 
+   /:/|:|__|__   /:/  /  ___   _\:\~\ \  \   /::\~\:\  \   /:/  /       /::\__\
+  /:/ |::::\__\ /:/__/  /\__\ /\ \:\ \ \__\ /:/\:\ \:\__\ /:/__/     __/:/\/__/
+  \/__/~~/:/  / \:\  \ /:/  / \:\ \:\ \/__/ \:\~\:\ \/__/ \:\  \    /\/:/  /   
+        /:/  /   \:\  /:/  /   \:\ \:\__\    \:\ \:\__\    \:\  \   \::/__/    
+       /:/  /     \:\/:/  /     \:\/:/  /     \:\ \/__/     \:\  \   \:\__\    
+      /:/  /       \::/  /       \::/  /       \:\__\        \:\__\   \/__/    
+      \/__/         \/__/         \/__/         \/__/         \/__/            
+
+
+
+
+
+Authors: Axe, Saulder, Martin, and Bag
+
+
+
+
+Successfully imported all modules..../Users/adarshranjan/Desktop/museli
+
+
+
+
+Running script: /Users/adarshranjan/Desktop/museli/main_code.py
+
+
+
+
+Current Working Directory: /Users/adarshranjan/Desktop/museli
+
+
+
+
+Base Working Directory: /Users/adarshranjan/Desktop/museli
+
+
