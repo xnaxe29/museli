@@ -169,7 +169,7 @@ else:
 
 #######################EXECUTING_STAGE_TWO#######################
 
-quit()
+#quit()
 '''
 #To obtain EW information from EW data cube
 header_ew_original, header_ew_original_err, data_ew_original_file, err_ew_original_file = hff.open_ifu_fits(file_name_eq_width)
