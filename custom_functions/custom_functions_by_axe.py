@@ -76,7 +76,10 @@ def stage_one_analysis(par_dict, new_filename, quiet_val=False):
 	#Rebinning to logscale, spectral smoothing, sky and continuum estimation
 	bf.print_cust('Rebinning to logscale, spectral smoothing, sky and continuum estimation...', quiet_val=quiet_val)
 	wave_rebinned_central, data_rebinned_central, data_err_rebinned_central, fwhm_gal_central, velscale_central = gdff.refine_obs_data_using_scipy(wave_array, data_flattened[:, int(data_flattened.shape[1]/2)], data_err_flattened[:, int(data_flattened.shape[1]/2)], spectral_smoothing=int(par_dict['spectral_smoothing']))
-	cont_init_central = gdff.get_initial_continuum_rev_2(wave_rebinned_central, data_rebinned_central)
+	inst_cont = gdff.continuum_fitClass()
+	inst_cont.flux = data_rebinned_central
+	cont_init_central = inst_cont.continuum_finder_flux(wave_rebinned_central)
+	#cont_init_central = gdff.get_initial_continuum_rev_2(wave_rebinned_central, data_rebinned_central)
 	wave_sky_full_rebinned, flux_sky_full_rebinned, flux_err_sky_full_rebinned = gdff.check_for_sky(par_dict, wave_rebinned_central)
 	data_rebinned = np.zeros([len(wave_rebinned_central), data_flattened.shape[1]])
 	data_err_rebinned = np.ones([len(wave_rebinned_central), data_flattened.shape[1]])
