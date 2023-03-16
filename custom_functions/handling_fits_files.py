@@ -38,7 +38,10 @@ def open_ifu_fits(filename, instrument='muse', data_type='cube', quiet_val=False
 			with fits.open(str(filename)) as hdul:
 				header_original = hdul[0].header
 				header_original_err = hdul[1].header
-				data_original_file = hdul[0].data
+				if (hdul[0].data) is not None:
+					data_original_file = hdul[0].data
+				else:
+					data_original_file = hdul[1].data
 			err_original_file = np.zeros_like(data_original_file)
 			bf.print_cust('SDSS image loaded...', quiet_val=quiet_val)
 		else:

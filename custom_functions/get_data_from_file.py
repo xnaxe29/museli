@@ -15,6 +15,13 @@ from scipy.ndimage.morphology import binary_erosion
 from scipy.signal import find_peaks
 from scipy.signal import savgol_filter
 from scipy import interpolate
+from scipy.interpolate import interp1d
+from sklearn.decomposition import PCA
+from scipy.spatial.distance import cdist
+from sklearn.cluster import DBSCAN
+from statsmodels.nonparametric.smoothers_lowess import lowess
+from scipy.optimize import curve_fit
+
 #from basic_functions import *
 import basic_functions as bf
 import handling_fits_files as hff
@@ -57,11 +64,12 @@ def get_binned_data(file1, sky_file=None, min_snr=3.0, quiet_val=False):
 
 
 
-def combined_function_rebinning_continuum(wave_orig, data_real, err_real, spectral_smoothing_int=1, redshift_val=0.0, quiet_val=False):
+def combined_function_rebinning_continuum(wave_orig, data_real, err_real, spectral_smoothing_int=1, redshift_val=0.0, quiet_val=False, continuum_est_type='custom'):
 	wave_rebinned, flux_rebinned, flux_err_rebinned, fwhm_gal_init, velscale = refine_obs_data_using_scipy(wave_orig, data_real, err_real, spectral_smoothing=spectral_smoothing_int)
 	continuum_line_type = check_continuum_type(wave_rebinned, flux_rebinned, redshift=redshift_val)
 	inst_cont = continuum_fitClass()
 	inst_cont.flux = flux_rebinned
+	inst_cont.continuum_finding_method = str(continuum_est_type)
 	continuum_rebinned = inst_cont.continuum_finder_flux(wave_rebinned)
 	#continuum_rebinned = get_initial_continuum_rev_2(wave_rebinned, flux_rebinned, line_type=str(continuum_line_type), printing=quiet_val)
 	return (flux_rebinned, flux_err_rebinned, fwhm_gal_init, velscale, continuum_rebinned)
@@ -171,6 +179,7 @@ def get_data_from_file_custom(file1, file_type, require_air_to_vaccum, extra_red
 
 ##################################GET_CONTINUUM##################################
 
+
 class continuum_fitClass:
 	def __init__(self):
 		self.plot=False
@@ -189,6 +198,14 @@ class continuum_fitClass:
 		self.default_fwhm_galaxy_min=10
 		self.default_noise_level_sigma=10
 		self.default_fwhm_ratio_upscale=10
+		#self.spline_smoothing_factor = 1
+		self.pca_component_number = 1
+		self.lowess_cont_frac = 0.05
+		self.gaussian_cont_fit = 200
+		self.peak_prominence = 0.05
+		self.peak_width = 10
+		self.median_filter_window = 101
+		self.continuum_finding_method = 'custom'
 		pass
 	def smooth(self, y, box_pts):
 		box = np.ones(box_pts)/box_pts
@@ -274,11 +291,146 @@ class continuum_fitClass:
 		#r = flux[pick_2] - fit(wave[pick][pick_2])
 		return fit, std_cont, flux, pick, pick_2, peaks, std_cont
 
+
+	# Function for fitting a polynomial continuum
+	def poly_fit_continuum(self, wave):
+		degree = self.default_poly_order
+		flux = self.flux
+		wavelength = wave
+		coefficients = np.polyfit(wavelength, flux, degree)
+		continuum = np.polyval(coefficients, wavelength)
+		return continuum
+
+
+
+	# Function for fitting a spline continuum
+	def spline_fit_continuum(self, wave):
+		flux = self.flux
+		wavelength = wave
+		#smoothing_factor = self.spline_smoothing_factor
+		continuum = interp1d(wavelength, flux, kind='cubic')
+		return continuum(wavelength)
+
+
+
+	# Function for estimating the continuum using PCA
+	def pca_continuum(self, wave):
+		flux = self.flux
+		wavelength = wave
+		pca_component_number = self.pca_component_number
+		pca = PCA(n_components = pca_component_number)
+		X = flux.reshape(-1, 1)
+		pca.fit(X)
+		continuum = pca.inverse_transform(pca.transform(X)).flatten()
+		return continuum
+
+
+
+	# Function for estimating the continuum using a lowess smoother
+	def lowess_continuum(self, wave):
+		wavelength = wave
+		flux = self.flux
+		lowess_continuum_fraction = self.lowess_cont_frac
+		continuum = lowess(flux, wavelength, frac=lowess_continuum_fraction)[:, 1]
+		return continuum
+
+
+	# Function for estimating the continuum using a Gaussian fit
+	def gaussian_func(self, x, a, b, c, d):
+		return a * np.exp(-((x-b)/c)**2) + d
+
+	def gaussian_fit_continuum(self, wave):
+		wavelength = wave
+		flux = self.flux
+		window = self.gaussian_cont_fit
+		continuum = np.zeros_like(flux)
+		for i in range(len(flux)):
+			low = max(0, i-window//2)
+			high = min(len(flux), i+window//2)
+			x = wavelength[low:high]
+			y = flux[low:high]
+			try:
+				popt, _ = curve_fit(self.gaussian_func, x, y, p0=[1, wavelength[i], 5, 0])
+				continuum[i] = self.gaussian_func(wavelength[i], *popt)
+			except RuntimeError:
+				continuum[i] = np.nan
+		mask = np.isnan(continuum)
+		continuum[mask] = np.interp(wavelength[mask], wavelength[~mask], continuum[~mask])
+		return continuum
+
+
+	# Function for estimating the continuum using peak finding
+	def peak_find_continuum(self, wave):
+		wavelength = wave
+		flux = self.flux
+		prominence = self.peak_prominence
+		width = self.peak_width
+		peaks, _ = find_peaks(flux, prominence=prominence, width=width)
+		troughs, _ = find_peaks(-flux, prominence=prominence, width=width)
+		indices = np.concatenate([peaks, troughs, [0, len(flux)-1]])
+		continuum = np.interp(wavelength, wavelength[indices], flux[indices])
+		return continuum
+
+
+	# Function for estimating the continuum using median filtering
+	def median_filter_continuum(self, wave):
+		wavelength = wave
+		flux = self.flux
+		window = self.median_filter_window
+		continuum = np.zeros_like(flux)
+		for i in range(len(flux)):
+			low = max(0, i-window//2)
+			high = min(len(flux), i+window//2)
+			continuum[i] = np.nanmedian(flux[low:high])
+		mask = np.isnan(continuum)
+		continuum[mask] = np.interp(wavelength[mask], wavelength[~mask], continuum[~mask])
+		return continuum
+
+	# Define distance metric function
+	def dist_metric(self, x, y):
+		return np.abs(x - y)
+
+	def continuum_using_fof(self, wave):
+		wavelength = wave
+		flux = self.flux
+		# Calculate distance matrix
+		X = wavelength.reshape(-1, 1)
+		D = cdist(X, X, self.dist_metric)
+		# Find clusters using DBSCAN
+		db = DBSCAN(eps=3, min_samples=3, metric='precomputed').fit(D)
+		labels = db.labels_
+		# Calculate continuum
+		mask = (labels == 0)
+		continuum = np.median(flux[mask])
+		return continuum
+
+
 	def continuum_finder_flux(self, wave, *pars, **kwargs):
-		#flux = self.flux
-		#pars = np.asarray(pars).astype(np.int32)
-		fit, std_cont, flux, pick, pick_2, peaks, std_cont = self.continuum_finder(wave, *pars)
-		cont_flux = fit(wave[pick])
+		cont_find_method = self.continuum_finding_method
+		if (cont_find_method=='custom'):
+			fit, std_cont, flux, pick, pick_2, peaks, std_cont = self.continuum_finder(wave, *pars)
+			cont_flux = fit(wave[pick])
+		elif (cont_find_method=='poly'):
+			cont_flux = self.poly_fit_continuum(wave)
+		elif (cont_find_method=='spline'):
+			cont_flux = self.spline_fit_continuum(wave)
+		elif (cont_find_method=='pca'):
+			cont_flux = self.pca_continuum(wave)
+		elif (cont_find_method=='lowess'):
+			cont_flux = self.lowess_continuum(wave)
+		elif (cont_find_method=='gauss'):
+			cont_flux = self.gaussian_fit_continuum(wave)
+		elif (cont_find_method=='peak_find'):
+			cont_flux = self.peak_find_continuum(wave)
+		elif (cont_find_method=='median_filtering'):
+			cont_flux = self.median_filter_continuum(wave)
+		elif (cont_find_method=='fof'):
+			continuum_fof = self.continuum_using_fof(wave)
+			cont_flux = continuum_fof*np.ones_like(wave)
+		else:
+			bf.print_cust(f'Continuum finding method: {cont_find_method} not found. Reverting back to custom method.')
+			fit, std_cont, flux, pick, pick_2, peaks, std_cont = self.continuum_finder(wave, *pars)
+			cont_flux = fit(wave[pick])
 		return (cont_flux)
 
 
@@ -459,8 +611,8 @@ def revise_dictionary(par_dict_init, dir_name_6):
 	assert os.path.exists(str(default_emission_file)), f"File: {str(default_emission_file)} not found..."
 
 	par_dict_emission = par_dict_init
-	keys = ['number_of_narrow_components', 'number_of_wide_components', 'stopping_number_for_continuum', 'minimal_tying_factor_variance', 'minimum_amplitude_val', 'maximum_amplitude_val', 'minimum_reddening_val', 'maximum_reddening_val', 'sigma_bound_narrow_min', 'sigma_bound_narrow_max', 'sigma_bound_wide_max', 'poly_bound_val', 'maximum_accepted_reddening', 'e_b_minus_v_init', 'redshift_val', 'window_for_fit', 'multiplicative_factor_for_plot', 'spectral_smoothing', 'ppxf_stars_comp', 'ppxf_gas_comp', 'lick_idx_for_halpha', 'binning_quant', 'ellipse_angle_for_advanced_binning', 'window_for_choosing_snr_in_binning', 'max_ew_width_abs', 'decider_ew']
-	values = [1, 0, 5000000.0, 1e-3, -1, 6, 1e-4, 2.0, 10.0, 200.0, 5000.0, 1000.0, 2.0, 0.0, 0.0, 2000.0, 10, 1, 1, 1, 4, 10, 0, 100, 200, 0.0]
+	keys = ['number_of_narrow_components', 'number_of_wide_components', 'stopping_number_for_continuum', 'minimal_tying_factor_variance', 'minimum_amplitude_val', 'maximum_amplitude_val', 'minimum_reddening_val', 'maximum_reddening_val', 'sigma_bound_narrow_min', 'sigma_bound_narrow_max', 'sigma_bound_wide_max', 'poly_bound_val', 'maximum_accepted_reddening', 'e_b_minus_v_init', 'redshift_val', 'window_for_fit', 'multiplicative_factor_for_plot', 'spectral_smoothing', 'ppxf_stars_comp', 'ppxf_gas_comp', 'lick_idx_for_halpha', 'binning_quant', 'ellipse_angle_for_advanced_binning', 'window_for_choosing_snr_in_binning', 'max_ew_width_abs', 'decider_ew', 'num_processes']
+	values = [1, 0, 5000000.0, 1e-3, -1, 6, 1e-4, 2.0, 10.0, 200.0, 5000.0, 1000.0, 2.0, 0.0, 0.0, 2000.0, 10, 1, 1, 1, 4, 10, 0, 100, 200, 0.0, 4]
 	for key, value in zip(keys, values):
 		if (key not in par_dict_emission):
 			par_dict_emission[key] = float(value)
@@ -472,6 +624,7 @@ def revise_dictionary(par_dict_init, dir_name_6):
 	par_dict_emission['spectral_smoothing'] = int(par_dict_emission['spectral_smoothing'])
 	par_dict_emission['ppxf_stars_comp'] = int(par_dict_emission['ppxf_stars_comp'])
 	par_dict_emission['ppxf_gas_comp'] = int(par_dict_emission['ppxf_gas_comp'])
+	par_dict_emission['num_processes'] = int(par_dict_emission['num_processes'])
 	keys2 = ['fit_velocity_val', 'fit_vel_disp_val', 'fit_continuum_val', 'fit_reddening_val', 'plot_fit_refined', 'ppxf_emission_tie_balmer', 'ppxf_emission_limit_doublets', 'quiet']
 	values2 = [True, True, True, True, False, True, False, False]
 	for key2, value2 in zip(keys2, values2):
@@ -485,8 +638,8 @@ def revise_dictionary(par_dict_init, dir_name_6):
 	if 'sigma_init_array' not in par_dict_emission:
 		par_dict_emission['sigma_init_array'] = sigma_init_array_tmp
 
-	keys3 = ['observed_instrument', 'sky_spectra_file', 'lick_index_file', 'emission_file', 'binning_type', 'region_of_binning_interest_type', 'voronoi_snr_type', 'execution_type', 'execution_fit_type', 'emission_fit_type', ]
-	values3 = ['VLT-MUSE', default_sky, default_lick_index_file, default_emission_file, 'None', 'logical', 'snr', 'snr_map', 'auto', 'custom', ]
+	keys3 = ['observed_instrument', 'sky_spectra_file', 'lick_index_file', 'emission_file', 'binning_type', 'region_of_binning_interest_type', 'voronoi_snr_type', 'execution_type', 'execution_fit_type', 'emission_fit_type', 'continuum_finding_method', 'two_dimensional_map_name', ]
+	values3 = ['VLT-MUSE', default_sky, default_lick_index_file, default_emission_file, 'None', 'logical', 'snr', 'snr_map', 'auto', 'custom', 'custom', 'default', ]
 	for key3, value3 in zip(keys3, values3):
 		if (key3 not in par_dict_emission):
 			par_dict_emission[key3] = str(value3)

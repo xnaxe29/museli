@@ -11,6 +11,8 @@ from ppxf.ppxf import ppxf
 import ppxf.ppxf_util as util
 import ppxf.miles_util as lib
 from os import path
+from multiprocessing import Pool
+import multiprocessing
 ppxf_dir = path.dirname(path.realpath(ppxf_package.__file__))
 from astropy.constants import c as c_ms
 c_kms = float(c_ms.value / 1e3)
@@ -78,9 +80,52 @@ def stage_one_analysis(par_dict, new_filename, quiet_val=False):
 	wave_rebinned_central, data_rebinned_central, data_err_rebinned_central, fwhm_gal_central, velscale_central = gdff.refine_obs_data_using_scipy(wave_array, data_flattened[:, int(data_flattened.shape[1]/2)], data_err_flattened[:, int(data_flattened.shape[1]/2)], spectral_smoothing=int(par_dict['spectral_smoothing']))
 	inst_cont = gdff.continuum_fitClass()
 	inst_cont.flux = data_rebinned_central
+	inst_cont.continuum_finding_method = str(par_dict['continuum_finding_method'])
 	cont_init_central = inst_cont.continuum_finder_flux(wave_rebinned_central)
 	#cont_init_central = gdff.get_initial_continuum_rev_2(wave_rebinned_central, data_rebinned_central)
 	wave_sky_full_rebinned, flux_sky_full_rebinned, flux_err_sky_full_rebinned = gdff.check_for_sky(par_dict, wave_rebinned_central)
+
+	'''
+	#if __name__ == '__main__':
+	if (1):
+		data_rebinned = np.array([])
+		data_err_rebinned = np.array([])
+		fwhm_gal_datacube = np.array([])
+		continuum_datacube = np.array([])
+		velscale_datacube = np.array([])
+		start_time_par1 = time.time()
+		kwarg1 = [{'redshift_val': float(par_dict['redshift_val'])}]*int(data_flattened.shape[1])
+		kwarg2 = [{'continuum_est_type': str(par_dict['continuum_finding_method'])}]*int(data_flattened.shape[1])
+		kwarg3 = [{'quiet_val': True}]*int(data_flattened.shape[1])
+		# create a list of argument tuples
+		arg_tuples = [(data_flattened[:, i], data_err_flattened[:, i], kwarg1[i], kwarg2[i]) for i in range(data_flattened.shape[1])]
+		num_processes = int(par_dict['num_processes'])
+		#num_processes = 4
+		multiprocessing.freeze_support()
+		pool = multiprocessing.Pool(num_processes)
+		# execute the function in parallel using map
+		results = pool.map(gdff.combined_function_rebinning_continuum, arg_tuples)
+		# close the pool and wait for all processes to finish
+		for result in results:
+			data_rebinned_tmp, data_err_rebinned_tmp, fwhm_gal_datacube_tmp, velscale_datacube_tmp, continuum_datacube_tmp = zip(*results)
+			data_rebinned = np.append(data_rebinned, data_rebinned_tmp)
+			data_err_rebinned = np.append(data_err_rebinned, data_err_rebinned_tmp)
+			fwhm_gal_datacube = np.append(fwhm_gal_datacube, fwhm_gal_datacube_tmp)
+			velscale_datacube = np.append(velscale_datacube, velscale_datacube_tmp)
+			continuum_datacube = np.append(continuum_datacube, continuum_datacube_tmp)
+
+		pool.close()
+		pool.join()
+		bf.print_cust(f'{data_rebinned.shape}, {np.nanmean(data_rebinned)}')
+		bf.print_cust(f'{data_err_rebinned.shape}, {np.nanmean(data_err_rebinned)}')
+		bf.print_cust(f'{fwhm_gal_datacube.shape}, {np.nanmean(fwhm_gal_datacube)}')
+		bf.print_cust(f'{velscale_datacube.shape}, {np.nanmean(velscale_datacube)}')
+		bf.print_cust(f'{continuum_datacube.shape}, {np.nanmean(continuum_datacube)}')
+	
+	bf.print_cust(f"Parallel processing took {float(time.time() - start_time_par1)} seconds ---", quiet_val=quiet_val)
+
+	'''
+	#start_time_par2 = time.time()
 	data_rebinned = np.zeros([len(wave_rebinned_central), data_flattened.shape[1]])
 	data_err_rebinned = np.ones([len(wave_rebinned_central), data_flattened.shape[1]])
 	fwhm_gal_datacube = np.zeros([len(wave_rebinned_central), data_flattened.shape[1]])
@@ -91,7 +136,15 @@ def stage_one_analysis(par_dict, new_filename, quiet_val=False):
 	for i in range(data_flattened.shape[1]):
 	#for i in range(0, data_flattened.shape[1], 100):
 		bar.next()
-		data_rebinned[:, i], data_err_rebinned[:,i], fwhm_gal_datacube[:, i], velscale_datacube[i], continuum_datacube[:, i] = gdff.combined_function_rebinning_continuum(wave_array, data_flattened[:, i], data_err_flattened[:, i], redshift_val=float(par_dict['redshift_val']), quiet_val=quiet_val)
+		data_rebinned[:, i], data_err_rebinned[:,i], fwhm_gal_datacube[:, i], velscale_datacube[i], continuum_datacube[:, i] = gdff.combined_function_rebinning_continuum(wave_array, data_flattened[:, i], data_err_flattened[:, i], redshift_val=float(par_dict['redshift_val']), continuum_est_type=str(par_dict['continuum_finding_method']), quiet_val=quiet_val)
+	#bf.print_cust(f'{data_rebinned.shape}, {np.nanmean(data_rebinned)}')
+	#bf.print_cust(f'{data_err_rebinned.shape}, {np.nanmean(data_err_rebinned)}')
+	#bf.print_cust(f'{fwhm_gal_datacube.shape}, {np.nanmean(fwhm_gal_datacube)}')
+	#bf.print_cust(f'{velscale_datacube.shape}, {np.nanmean(velscale_datacube)}')
+	#bf.print_cust(f'{continuum_datacube.shape}, {np.nanmean(continuum_datacube)}')
+	#bf.print_cust(f"Parallel processing took {float(time.time() - start_time_par2)} seconds ---", quiet_val=quiet_val)
+	#quit()
+	#'''
 	bf.print_cust('Rebinning to logscale, spectral smoothing, sky and continuum estimation is now complete...', quiet_val=quiet_val)
 	#Recovering new data back to the 3D shape
 	bf.print_cust('Recovering new data back to the 3D shape...', quiet_val=quiet_val)
@@ -109,7 +162,6 @@ def stage_one_analysis(par_dict, new_filename, quiet_val=False):
 	bf.print_cust(f"---STAGE-I took {float(time.time() - start_time1)} seconds ---", quiet_val=quiet_val)
 	
 ########################################STAGE_ONE_ANALYSIS########################################
-
 
 
 
@@ -161,13 +213,12 @@ def stage_two_analysis(par_dict, new_filename, file_name_eq_width, quiet_val=Fal
 		ew_map_array[-1, i, 1] = np.nansum(data_err_flattened_normalised[:, i], axis=(0))
 		#for i in range(0, data_flattened_normalised.shape[1], 100):
 		bar.next()
-		for j in range(len(mean_wave_list_rev)):
-			ew_map_array[j, i, 0], ew_map_array[j, i, 1] = bf.get_equivalendth_width_rev(wave_rest, data_flattened_normalised[:, i], data_err_flattened_normalised[:, i], center=float(mean_wave_list_rev[j]), redshift=float(par_dict['redshift_val']))
+		for j in range(len(lick_index_species_list)):
+			#ew_map_array[j, i, 0], ew_map_array[j, i, 1] = bf.get_equivalendth_width_rev(wave_rest, data_flattened_normalised[:, i], data_err_flattened_normalised[:, i], center=float(mean_wave_list_rev[j]), redshift=float(par_dict['redshift_val']))
+			new_lick_index_array = np.array([lick_index_wave11[int(lick_index_species_list[j])], lick_index_wave12[int(lick_index_species_list[j])], lick_index_wave21[int(lick_index_species_list[j])], lick_index_wave22[int(lick_index_species_list[j])], lick_index_wave31[int(lick_index_species_list[j])], lick_index_wave32[int(lick_index_species_list[j])]], dtype=float)
+			ew_map_array[j, i, 0], ew_map_array[j, i, 1] = bf.get_equivalendth_width_rev_new(wave_rest, data_flattened[:, i], data_err_flattened[:, i], lick_index_array=new_lick_index_array)
 
 	ew_map_array_cube = ew_map_array.reshape((len(mean_wave_list_rev)+1, data_rev_file.shape[1], data_rev_file.shape[2], 2))
-    #ew_map_array_cube = np.transpose(ew_map_array_cube, axes=(0,2,1,3))
-    #ew_map_array_cube = np.flip(ew_map_array_cube, axes=(1))
-	#file_name_eq_width = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_eq_width.fits')
 	header_ew, header_ew_err, data_ew_file, err_ew_file = hff.copy_ifu_fits(str(par_dict['muse_data_filename']), file_name_eq_width)
 	with fits.open(file_name_eq_width, mode='update', output_verify='fix') as hdu_list:
 		hdu_list[1].data = ew_map_array_cube[:,:,:,0]
@@ -176,7 +227,10 @@ def stage_two_analysis(par_dict, new_filename, file_name_eq_width, quiet_val=Fal
 		hdu_list[2].header['NAXIS1'] = (len(mean_wave_list_rev), 'length of data axis 1 ')
 		hdu_list[1].header['BUNIT'] = 'Ang'
 		hdu_list[2].header['BUNIT'] = 'Ang'
-		#del hdu_list[1].header['CTYPE3']; del hdu_list[1].header['CUNIT3']; del hdu_list[1].header['CD3_3']; del hdu_list[1].header['CRPIX3']; del hdu_list[1].header['CRVAL3']; del hdu_list[1].header['CD1_3']; del hdu_list[1].header['CD2_3']; del hdu_list[1].header['CD3_1']; del hdu_list[1].header['CD3_2']; del hdu_list[2].header['CTYPE3']; del hdu_list[2].header['CUNIT3']; del hdu_list[2].header['CD3_3']; del hdu_list[2].header['CRPIX3']; del hdu_list[2].header['CRVAL3']; del hdu_list[2].header['CD1_3']; del hdu_list[2].header['CD2_3']; del hdu_list[2].header['CD3_1']; del hdu_list[2].header['CD3_2']
+		# Add information about the names of each element in the third dimension
+		for k in range(len(lick_index_species_list)):
+			hdu_list[0].header['EXTNAME'+str(k+1)] = str(lick_index_species[int(lick_index_species_list[k])]) + str(', ') + str(mean_wave_list_full[int(lick_index_species_list[k])])
+
 	bf.print_cust('EW Maps generated...', quiet_val=quiet_val)
 	bf.print_cust('STAGE-II analysis complete...', quiet_val=quiet_val)
 	bf.print_cust(f"---STAGE-II took {float(time.time() - start_time2)} seconds ---", quiet_val=quiet_val)

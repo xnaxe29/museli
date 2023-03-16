@@ -3,6 +3,7 @@ import numpy as np
 import scipy
 import scipy as sp
 from scipy import signal
+from scipy import interpolate
 import warnings
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
@@ -81,7 +82,16 @@ def find_nearest(array,value):
 	return array[idx]
 
 def find_nearest_idx(array,value):
-	idx = (np.abs(array-value)).argmin()
+	if type(value) == list:
+		idx = []
+		for i in range(len(value)):
+			idx.extend((np.abs(array-value[i])).argmin())
+	elif (isinstance(value, np.ndarray)):
+		idx = np.zeros_like(value, dtype=int)
+		for i in range(len(value)):
+			idx[i] = (np.abs(array-value[i])).argmin()
+	else:
+		idx = (np.abs(array-value)).argmin()
 	return idx
 
 def find_nearest_new(array,value):
@@ -339,6 +349,24 @@ def get_equivalendth_width_rev(wave_rest, data_norm, err_norm, center=6563., red
 	equivalent_width = (np.sum(data))*(delta_lambda)
 	equivalent_width_err = (np.sqrt(np.nansum(err)))*(delta_lambda)
 	return (equivalent_width, equivalent_width_err)
+
+def get_equivalendth_width_rev_new(wave_rest, data_original, err_original, lick_index_array=np.array([6522., 6542., 6554., 6570., 6585., 6625.])):
+	index_w11, index_w12, index_m11, index_m12, index_w21, index_w22 = find_nearest_idx(wave_rest, lick_index_array)
+	wave_to_fit = np.append(wave_rest[index_w11:index_w12], wave_rest[index_w21:index_w22])
+	flux_to_fit = np.append(data_original[index_w11:index_w12], data_original[index_w21:index_w22])
+	flux_err_to_fit = np.append(err_original[index_w11:index_w12], err_original[index_w21:index_w22])
+	f_fit_flux = interpolate.interp1d(wave_to_fit, flux_to_fit, axis=0, fill_value="extrapolate", kind='linear')
+	norm_wave = wave_rest[index_w11:index_w22]
+	norm_flux = data_original[index_w11:index_w22] / f_fit_flux(wave_rest[index_w11:index_w22])
+	norm_flux_err = err_original[index_w11:index_w22] / f_fit_flux(wave_rest[index_w11:index_w22])
+	norm_flux_rev = 1. - norm_flux
+	delta_lambda = float(norm_wave[1] - norm_wave[0])
+	assert delta_lambda!=0.0, f"Delta Lambda: {delta_lambda} cannot be zero..."
+	equivalent_width = (np.nansum(norm_flux_rev))*(delta_lambda)
+	equivalent_width_err = (np.sqrt(np.nansum(norm_flux_err)))*(delta_lambda)
+	return (equivalent_width, equivalent_width_err)
+
+
 ######################GET_EQUIVALENT_WIDTH##################################
 
 

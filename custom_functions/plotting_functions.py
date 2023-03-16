@@ -1018,13 +1018,14 @@ def save_quick_figure(wave, flux, err, wave_fitted, flux_fitted, flux_err_fitted
 
 
 ####################GET_SNR_MAP_FOR_BINNED_DATA####################
-def get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = False, snr_vmin_val = 0.1, snr_vmax_val = 20, quiet_val=False, return_map=False):
+def get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = False, snr_vmin_val = 0.1, snr_vmax_val = 20, quiet_val=False, return_map=False, data_type_requested='snr_map'):
 	bf.print_cust('Plotting SNR Map...', quiet_val=quiet_val)
 	assert ('voronoi_snr_type' in par_dict), f"voronoi_snr_type required..."
 	y_array, x_array, ra_array, dec_array, signal1, noise1, signal2, noise2 = np.loadtxt(file_name_rev_linear).T
 	x_array_binned, y_array_binned, bin_num = np.loadtxt(file_name_rev_binned).T
 	bin_unique = np.unique(bin_num)
 	signal_total = np.zeros_like(bin_num)
+	signal_total_med = np.zeros_like(bin_num)
 	noise_total = np.ones_like(bin_num)
 	if 'ew' in par_dict['voronoi_snr_type']:
 		signal = signal1
@@ -1036,14 +1037,24 @@ def get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, ph
 	for i in range(len(bin_unique)):
 		mask = np.isin(bin_num, bin_unique[i])
 		signal_tmp = np.nansum(signal[mask])
+		signal_median_tmp = np.nanmedian(signal[mask])
 		noise_tmp = np.sqrt(np.nansum(noise[mask]**2))
 		signal_total[mask] = signal_tmp
+		signal_total_med[mask] = signal_median_tmp
 		noise_total[mask] = noise_tmp
 		signal_tmp = 0.0
 		noise_tmp = 1.0
-	snr_revised = signal_total / noise_total
+		
+	if (data_type_requested=='median'):
+		snr_revised = signal_total_med
+	else:
+		snr_revised = signal_total / noise_total
+
 	if (return_map):
-		return (x_array_binned, y_array_binned, snr_revised)
+		if (physical_axes):
+			return (ra_array, dec_array, snr_revised)
+		else:
+			return (x_array_binned, y_array_binned, snr_revised)
 	else:
 		bf.print_cust('Plotting SNR Map...', quiet_val=quiet_val)
 		fig2, axs2 = plt.subplots(2, figsize=(6,10), sharex=True, sharey=True)
