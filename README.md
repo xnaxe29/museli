@@ -19,7 +19,7 @@ DEVELOPERS: Adarsh Ranjan, Garreth Martin, Christophe Saulder, and Satadru Bag
 
 INTRODUCTION:
 
-MUSELI is a graphical user interface (GUI) tool python to perform stellar population synthesis and gas dynamical analysis in MUSE IFU spectroscopic data. It is also very easy to extend this program to analyze any other kind of IFU spectroscopic data. The code is completely written in python3 and includes the usage of multiple tools developed by Michele Capellari such as ppxf for stellar absorption fitting, Vorbin for voronoi spatial binning and pafit to fit the position angles. The code also uses continuum estimation tool inspired from the method by Martin+2021. 
+MUSELI is a graphical user interface (GUI) tool python to perform stellar population synthesis and gas dynamical analysis in MUSE IFU spectroscopic data. It is also very easy to extend this program to analyze any other kind of IFU spectroscopic data. The code is completely written in python3 and includes the usage of multiple tools developed by Michele Capellari such as ppxf for stellar absorption fitting, Vorbin for voronoi spatial binning. The code also uses continuum estimation tool inspired from the method by Martin+2021. In future, the code will include 'pafit' routine to fit the position angles developed by  
 
 
 REQUIREMENTS GUIDE:

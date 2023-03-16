@@ -51,13 +51,15 @@ def print_cust(print_str, **kwargs):
 
 
 #----------------------------------------------------------------------------
-def save_linear_file(header_information_absorption, expanded_information_cube_absorption, ra_array, dec_array, filename='test_linear_kin_file.dat'):
+def save_linear_file(header_information_absorption, header_information_emission, expanded_information_cube_absorption, expanded_information_cube_emission, ra_array, dec_array, filename='test_linear_kin_file.dat'):
     #num, xbin, ybin, velbin, er_velbin, sigbin, er_sigbin, h3bin, er_h3bin, h4bin, er_h4bin = np.genfromtxt(file, unpack=True)
 	#print (header_information_absorption)
 	#print (ra_array)
 	#print (dec_array)
 	idx_v = np.where(header_information_absorption=='V-1')[0][0]
 	idx_sigma = np.where(header_information_absorption=='sigma1')[0][0]
+	idx_v_emission = np.where(header_information_emission=='V-1')[0][0]
+	idx_sigma_emission = np.where(header_information_emission=='sigma-1')[0][0]
 	idx_h3 = np.where(header_information_absorption=='h3-1')[0][0]
 	idx_h4 = np.where(header_information_absorption=='h4-1')[0][0]
 	#print (idx_v, idx_sigma, idx_h3, idx_h4)
@@ -65,13 +67,18 @@ def save_linear_file(header_information_absorption, expanded_information_cube_ab
 	er_vel_map = expanded_information_cube_absorption[idx_v, :, :, 1]
 	sigma_map = expanded_information_cube_absorption[idx_sigma, :, :, 0]
 	er_sigma_map = expanded_information_cube_absorption[idx_sigma, :, :, 1]
+	vel_map_em = expanded_information_cube_emission[idx_v_emission, :, :, 0]
+	er_vel_map_em = expanded_information_cube_emission[idx_v_emission, :, :, 1]
+	sigma_map_em = expanded_information_cube_emission[idx_sigma_emission, :, :, 0]
+	er_sigma_map_em = expanded_information_cube_emission[idx_sigma_emission, :, :, 1]
 	h3_map = expanded_information_cube_absorption[idx_h3, :, :, 0]
 	er_h3_map = expanded_information_cube_absorption[idx_h3, :, :, 1]
 	h4_map = expanded_information_cube_absorption[idx_h4, :, :, 0]
 	er_h4_map = expanded_information_cube_absorption[idx_h4, :, :, 1]
 	chi_sq_abs = expanded_information_cube_absorption[5, :, :, 1]
-	count=0
-	linear_array = np.zeros([int(len(ra_array)*len(dec_array)), 12])
+	count=1
+	linear_array = np.chararray([int(len(ra_array)*len(dec_array))+1, 16], itemsize=100)
+	linear_array[0, :] = np.array(['#Count', 'RA', 'Dec', 'V', 'del_V', 'sigma', 'del_sigma', 'V_em', 'del_V_em', 'sigma_em', 'del_sigma_em', 'h3', 'del_h3', 'h4', 'del_h4', 'chi_sq'])
 	bar = IncrementalBar('Countdown', max = int(len(ra_array)*len(dec_array)))
 	for i in range(len(ra_array)):
 		for j in range(len(dec_array)):
@@ -84,14 +91,19 @@ def save_linear_file(header_information_absorption, expanded_information_cube_ab
 			linear_array[count, 4] = er_vel_map[j,i]
 			linear_array[count, 5] = sigma_map[j,i]
 			linear_array[count, 6] = er_sigma_map[j,i]
-			linear_array[count, 7] = h3_map[j,i]
-			linear_array[count, 8] = er_h3_map[j,i]
-			linear_array[count, 9] = h4_map[j,i]
-			linear_array[count, 10] = er_h4_map[j,i]
-			linear_array[count, 11] = chi_sq_abs[j,i]
+			linear_array[count, 7] = vel_map_em[j,i]
+			linear_array[count, 8] = er_vel_map_em[j,i]
+			linear_array[count, 9] = sigma_map_em[j,i]
+			linear_array[count, 10] = er_sigma_map_em[j,i]
+			linear_array[count, 11] = h3_map[j,i]
+			linear_array[count, 12] = er_h3_map[j,i]
+			linear_array[count, 13] = h4_map[j,i]
+			linear_array[count, 14] = er_h4_map[j,i]
+			linear_array[count, 15] = chi_sq_abs[j,i]
 			count+=1
 
-	np.savetxt(filename, linear_array)
+	linear_array1 = linear_array.astype(np.str_)
+	np.savetxt(filename, linear_array1, fmt='%s', delimiter=',', encoding='latin1')
 	print_cust(f'Linear array: {filename} saved')
 
 
@@ -120,8 +132,9 @@ test6 = str(test5[-1])
 test7 = codename.replace(test6, "")
 test8 = test7 + str("/custom_functions")
 sys.path.append(test8)
-from plotting_functions import *
-from handling_fits_files import *
+import basic_functions as bf
+import plotting_functions as pf
+import handling_fits_files as hff
 
 expanded_hdr_filename2 = str(sys.argv[1])
 test1 = expanded_hdr_filename2.split('/')
@@ -147,6 +160,10 @@ header_information_absorption = header_information_absorption[header_information
 header_information_err_absorption = header_information_err_absorption[header_information_err_absorption != '']
 header_information_emission = header_information_emission[header_information_emission != '']
 header_information_err_emission = header_information_err_emission[header_information_err_emission != '']
+
+#print (header_information_absorption)
+#print (header_information_emission)
+
 
 with h5py.File(expanded_filename2, 'r') as hf:
 	#header_original = hf["header"]
@@ -174,7 +191,7 @@ ra_array = x_axis_unique
 dec_array = y_axis_unique
 #test4 = test3 + str("/post_process_images")
 tmp_linear_filename = test3 + str("/data/tmp_linear_data_rev.dat")
-save_linear_file(header_information_absorption, expanded_information_cube_absorption, ra_array, dec_array, filename=tmp_linear_filename)
+save_linear_file(header_information_absorption, header_information_emission, expanded_information_cube_absorption, expanded_information_cube_emission, ra_array, dec_array, filename=tmp_linear_filename)
 map = expanded_information_cube_emission[0, :, :, 0]
 vel_kinemetry_figname = test3 + str("/post_process_images/vel_kinemetry.pdf")
 sigma_kinemetry_figname = test3 + str("/post_process_images/sigma_kinemetry.pdf")
@@ -194,7 +211,7 @@ print_cust(f"Loading took {float(time.time() - start_time6)} seconds ---")
 fig, ax = plt.subplots()
 ax.cla()
 im = ax.imshow(map, origin='lower', cmap='viridis')
-im_cl = add_colorbar(im)
+im_cl = bf.add_colorbar(im)
 ax.title.set_text(str(header_information_emission[0]))
 #'''
 
@@ -234,9 +251,9 @@ def update(val):
 		im = ax.imshow(plot_data, origin='lower', cmap='viridis')
 		ax.title.set_text(str(header_information_absorption[absorption_val]))
 		if ('log' in str(radio_loglin_buttons.value_selected)):
-			im_cl = add_colorbar(im)
+			im_cl = bf.add_colorbar(im)
 		else:
-			im_cl = add_colorbar_lin(im)
+			im_cl = bf.add_colorbar_lin(im)
 	else:
 		data_updated = plot_file_em[emission_val, :, :, 0]
 		err_updated = plot_file_em[emission_val, :, :, 1]
@@ -248,9 +265,9 @@ def update(val):
 		im = ax.imshow(plot_data, origin='lower', cmap='viridis')
 		ax.title.set_text(str(header_information_emission[emission_val]))
 		if ('log' in str(radio_loglin_buttons.value_selected)):
-			im_cl = add_colorbar(im)
+			im_cl = bf.add_colorbar(im)
 		else:
-			im_cl = add_colorbar_lin(im)
+			im_cl = bf.add_colorbar_lin(im)
 
 fig.canvas.draw_idle()
 
@@ -306,10 +323,10 @@ def func_plot_one_d(event):
 	st_age_unique1 = plot_file_abs[10:16, iy, ix, 0]
 	st_mass_unique1 = plot_file_abs[16:22, iy, ix, 0]
 	st_lum_unique1 = plot_file_abs[22:28, iy, ix, 0]
-	#redshift_val = 0.07527116015236746
-	redshift_val = 0.050200146
+	redshift_val = 0.07527116015236746
+	#redshift_val = 0.050200146
 	figname1d_rev = figname1d + str(int(iy)) + str("_") + str(int(ix)) + str(".pdf")
-	ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, st_age_unique=st_age_unique1, st_mass_unique=st_mass_unique1, st_lum_unique=st_lum_unique1, figname=figname1d_rev, redshift=redshift_val)
+	pf.ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, st_age_unique=st_age_unique1, st_mass_unique=st_mass_unique1, st_lum_unique=st_lum_unique1, figname=figname1d_rev, redshift=redshift_val)
 plot_one_d_button.on_clicked(func_plot_one_d)
 
 
@@ -343,9 +360,9 @@ def func_make_figure(event):
 		ax_save.title.set_text(title_name)
 		figname2d_2 = figname2d + str("_abs_")
 		if ('log' in str(radio_loglin_buttons.value_selected)):
-			im_cl_save = add_colorbar(im_save)
+			im_cl_save = bf.add_colorbar(im_save)
 		else:
-			im_cl_save = add_colorbar_lin(im_save)
+			im_cl_save = bf.add_colorbar_lin(im_save)
 
 	else:
 		data_updated = plot_file_em[emission_val, :, :, 0]
@@ -362,9 +379,9 @@ def func_make_figure(event):
 		ax_save.title.set_text(title_name)
 		figname2d_2 = figname2d + str("_em_")
 		if ('log' in str(radio_loglin_buttons.value_selected)):
-			im_cl_save = add_colorbar(im_save)
+			im_cl_save = bf.add_colorbar(im_save)
 		else:
-			im_cl_save = add_colorbar_lin(im_save)
+			im_cl_save = bf.add_colorbar_lin(im_save)
 
 	figname2d_rev = figname2d_2 + title_name + str(".pdf")
 	fig2.savefig(figname2d_rev, dpi=100)

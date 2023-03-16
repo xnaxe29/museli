@@ -15,6 +15,7 @@ from astropy.wcs import WCS
 
 #import pyfits
 from matplotlib.widgets import Slider, Button, RadioButtons, CheckButtons, RectangleSelector
+import matplotlib.patches as patches
 sys.path.append(str(sys.argv[2]) + '/custom_functions')
 #from custom_functions_by_axe import *
 import custom_functions_by_axe as cfba
@@ -125,7 +126,7 @@ else:
 
 #######################EXECUTING_STAGE_ONE#######################
 
-
+#quit()
 '''
 #STAGE ONE LOOKS GOOD
 wave_min = 7082.0
@@ -169,10 +170,11 @@ else:
 
 #######################EXECUTING_STAGE_TWO#######################
 
-#quit()
+
 '''
 #To obtain EW information from EW data cube
 header_ew_original, header_ew_original_err, data_ew_original_file, err_ew_original_file = hff.open_ifu_fits(file_name_eq_width)
+#print (header_ew_original)
 lick_index_species_list = par_dict['lick_index_species_list']
 lick_index_wave11, lick_index_wave12, lick_index_wave21, lick_index_wave22, lick_index_wave31, lick_index_wave32, lick_index_sign,lick_index_species, lick_index_reference = np.genfromtxt(str(par_dict['lick_index_file']), unpack=True, names=True, encoding=None, dtype=None)
 mean_wave_list_full = (lick_index_wave21 + lick_index_wave22) / 2.
@@ -180,7 +182,7 @@ lick_index_species_rev = np.array(lick_index_species[lick_index_species_list[:]]
 with fits.open(str(str(par_dict['muse_data_filename']))) as hdul:
     header_original = hdul[1].header
 muse_wcs = WCS(header_original).celestial
-print (lick_index_species_rev)
+#print (lick_index_species_rev)
 #names_of_species = str(lick_index_species_rev[:]) + str(mean_wave_list_full.astype(np.int32)[:])
 #print (names_of_species)
 #quit()
@@ -190,17 +192,27 @@ fig, axs = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True, figsize=(15,
 counter_test = 0
 data_ew_original_file[data_ew_original_file<-1000.] = np.nan
 data_ew_original_file[data_ew_original_file>1000.0] = np.nan
-data_ew_original_file = np.abs(data_ew_original_file)
+#mask = (data_ew_original_file[4, :, :]<0.0) or (data_ew_original_file[5, :, :]<0.0)
+data_ew_original_file[4, :, :][data_ew_original_file[4, :, :]<0.0] = np.nan
+data_ew_original_file[5, :, :][data_ew_original_file[5, :, :]<0.0] = np.nan
+data_ew_original_file[2, :, :][data_ew_original_file[2, :, :]>0.0] = np.nan
+data_ew_original_file[3, :, :][data_ew_original_file[3, :, :]>0.0] = np.nan
+#significance = np.abs(data_ew_original_file) / err_ew_original_file
+#data_ew_original_file[significance>3.0] = np.nan
+
+#data_ew_original_file = np.abs(data_ew_original_file)
+#data_ew_original_file = data_ew_original_file / 1000.
 count = 0
-counter_test = [0, 2, 3, 6]
+counter_test = [2, 3, 4, 6]
+print (data_ew_original_file.shape)
 for i in range(2):
     for j in range(2):
         if ('5007' in  lick_index_species_rev[counter_test[count]]) or ('alpha' in  lick_index_species_rev[counter_test[count]]):
             #im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], vmin=5, vmax=100, cmap='viridis')
-            im1 = axs[i, j].imshow(np.log10(data_ew_original_file[counter_test[count], :, :]), vmin=-1, vmax=2, cmap='viridis')
+            im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], cmap='RdBu', vmin=-100, vmax=100)
         else:
             #im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], vmin=0.1, vmax=100, cmap='viridis')
-            im1 = axs[i, j].imshow(np.log10(data_ew_original_file[counter_test[count], :, :]), vmin=-1, vmax=2, cmap='viridis')
+            im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], cmap='RdBu', vmin=-10, vmax=10)
 
         divider = make_axes_locatable(axs[i, j])
         cax = divider.append_axes('right', size='5%', pad=0.55)
@@ -386,34 +398,70 @@ expanded_hdr_filename1, expanded_filename1 = cfba.stage_five_analysis(main_resul
 
 snr_vmin_val1 = 0.1
 snr_vmax_val1 = 20
-physical_axes1 = False
-x_array_binned, y_array_binned, snr_revised = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = physical_axes1, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True)
+physical_axes1 = True
+contour_count = 20
+x_array_binned, y_array_binned, snr_revised = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = physical_axes1, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True, data_type_requested='snr_map')
 
 fig, ax = plt.subplots()
 ax.cla()
-im = ax.scatter(x_array_binned, y_array_binned, c = snr_revised, cmap='viridis', vmin=snr_vmin_val1, vmax=snr_vmax_val1)
+im = ax.scatter(y_array_binned, x_array_binned, c = snr_revised, cmap='viridis', vmin=snr_vmin_val1, vmax=snr_vmax_val1, zorder=1)
 im_cl = bf.add_colorbar_lin(im)
+e1 = patches.Ellipse((y_array_binned[30], x_array_binned[30]), (10./3600.), (10./3600.), angle=0, linewidth=2, fill=False, zorder=3)
+ax.add_patch(e1)
 
-'''
-def update(val):
-	bf.print_cust("Current Status: ")
-	binning_quant_updated = int(sbinning_quant_slider.val)
-	bf.print_cust(binning_quant_updated)
-	sspectral_smoothing_updated = int(sspectral_smoothing_slider.val)
-	bf.print_cust(binning_quant_updated)
-	radio_binning_type_updated = str(radio_binning_type_buttons.value_selected)
-	bf.print_cust(binning_quant_updated)
-	radio_binning_significance_type_updated = str(radio_binning_significance_type.value_selected)
-	bf.print_cust(binning_quant_updated)
-	radio_work_type_updated = str(radio_work_type.value_selected)
-	bf.print_cust(binning_quant_updated)
-	radio_fit_type_updated = str(radio_fit_type.value_selected)
-	bf.print_cust(binning_quant_updated)
-	radio_emission_fit_type_updated = str(radio_emission_fit_type.value_selected)
-	bf.print_cust(binning_quant_updated)
-'''
+if par_dict['two_dimensional_map_name'] == 'default':
+	header_rev, header_rev_err, header_rev_cont, header_rev_fwhm, header_rev_velscale, header_rev_sky, data_rev_file, err_rev_file, cont_rev_file, fwhm_rev_file, velscale_rev_file, sky_rev_file = hff.open_ifu_fits_custom_file(new_filename)
+	ra_rev, dec_rev, wave_rev = hff.obtain_physical_axis(header_rev)
+	two_d_map = np.fliplr(np.log10(np.abs(np.nansum(data_rev_file, axis=(0)))))
+else:
+	header_rev, header_rev_err, data_rev_file, err_rev_file = hff.open_ifu_fits(str(par_dict['two_dimensional_map_name']), instrument='sdss', data_type='image')
+	ra_rev, dec_rev, wave_rev = hff.obtain_physical_axis(header_rev_err, instrument='sdss', data_type='image')
+	two_d_map = np.fliplr(np.log10(np.abs(data_rev_file)))
 
-binning_quant_slider_axes = plt.axes([0.1, 0.01, 0.3, 0.02])
+im2 = ax.contour(ra_rev, dec_rev, two_d_map, contour_count, cmap='Greys', alpha=1, zorder=2)
+contset = im2.collections[0]
+contset.set_visible(False)  # hide the contour initially
+
+# Create the checkbox widgets
+rax = plt.axes([0.40, 0.00, 0.1, 0.075])
+check_im = CheckButtons(ax=rax, labels=['Image', 'Contour'], actives=[True, True])
+
+# Define the update function
+def update(label):
+    if label == 'Image':
+        im.set_visible(not im.get_visible())
+    elif label == 'Contour':
+        for collection in im2.collections:
+            collection.set_visible(not collection.get_visible())
+    plt.draw()
+# Register the update function with the checkbox widgets
+check_im.on_clicked(update)
+
+def update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated):
+	bf.print_cust('Updating Figure...')
+	global im_cl
+	im = ax.scatter(y_array_binned_updated, x_array_binned_updated, c = snr_revised_updated, cmap='viridis', vmin=snr_vmin_val1, vmax=snr_vmax_val1, zorder=1)
+	im_cl = bf.add_colorbar_lin(im)
+	e1 = patches.Ellipse((y_array_binned_updated[30], x_array_binned_updated[30]), (10./3600.), (10./3600.), angle=0, linewidth=2, fill=False, zorder=3)
+	ax.add_patch(e1)
+	im2 = ax.contour(ra_rev, dec_rev, two_d_map, contour_count, cmap='Greys', alpha=1, zorder=2)
+	# Define the update function
+	def update(label):
+		if label == 'Image':
+			im.set_visible(not im.get_visible())
+		elif label == 'Contour':
+			for collection in im2.collections:
+				collection.set_visible(not collection.get_visible())
+		#plt.draw()
+	# Register the update function with the checkbox widgets
+	check_im.on_clicked(update)
+	bf.print_cust('Figure updated...')
+	sys.stdout.flush()
+	time.sleep(0.1)
+	plt.draw()
+
+
+binning_quant_slider_axes = plt.axes([0.1, 0.01, 0.25, 0.02])
 sbinning_quant_slider = Slider(binning_quant_slider_axes, 'binning_quant', 2, 100, valinit=int(par_dict['binning_quant']), valfmt="%i")
 #sbinning_quant_slider.on_changed(update)
 
@@ -430,6 +478,21 @@ radio_binning_type_buttons = RadioButtons(binning_type_buttons_axes, ('None', 's
 def func_binning_type_buttons(label_binning_type_buttons):
 	bf.print_cust(label_binning_type_buttons)
 radio_binning_type_buttons.on_clicked(func_binning_type_buttons)
+
+
+display_data_type_buttons_axes = plt.axes([0.60, 0.00, 0.1, 0.075])
+dict_display_data_type_buttons = {'snr_map', 'median'}
+radio_display_data_type_buttons = RadioButtons(display_data_type_buttons_axes, ('snr', 'median'), active=0)
+def func_display_data_type_buttons(label_display_data_type_buttons):
+	bf.print_cust(label_display_data_type_buttons)
+	radio_work_type_updated = str(radio_display_data_type_buttons.value_selected)
+	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = True, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
+	ax.cla()
+	im_cl.remove()
+	update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated)
+radio_display_data_type_buttons.on_clicked(func_display_data_type_buttons)
+
+
 
 binning_significance_type_buttons_axes = plt.axes([0.01, 0.1, 0.1, 0.1])
 dict_binning_significance_type = {'snr', 'ew'}
@@ -468,15 +531,8 @@ def func_emission_fit_type(label_emission_fit_type):
 	bf.print_cust(label_emission_fit_type)
 radio_emission_fit_type.on_clicked(func_emission_fit_type)
 
-def update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated):
-	bf.print_cust('Updating Figure...')
-	global im_cl
-	im = ax.scatter(x_array_binned_updated, y_array_binned_updated, c = snr_revised_updated, cmap='viridis', vmin=snr_vmin_val1, vmax=snr_vmax_val1)
-	im_cl = bf.add_colorbar_lin(im)
-	bf.print_cust('Figure updated...')
-	sys.stdout.flush()
-	time.sleep(0.1)
-	plt.draw()
+
+
 
 bin_data_buttons_axes = plt.axes([0.01, 0.88, 0.1, 0.02])
 bin_data_button = Button(bin_data_buttons_axes, 'Bin Data')
@@ -487,7 +543,7 @@ def func_bin_data(event):
 	sspectral_smoothing_updated = int(1)
 	radio_binning_type_updated = str(radio_binning_type_buttons.value_selected)
 	radio_binning_significance_type_updated = str(radio_binning_significance_type.value_selected)
-	radio_work_type_updated = str('snr_map')
+	radio_work_type_updated = str(radio_display_data_type_buttons.value_selected)
 	radio_fit_type_updated = str(radio_fit_type.value_selected)
 	radio_emission_fit_type_updated = str(radio_emission_fit_type.value_selected)
 	bf.print_cust(f"Current Status: Spectral Smoothing Factor: {sspectral_smoothing_updated},  Binning Quant: {binning_quant_updated},  Radio Binning Type: {radio_binning_type_updated},  Radio Binning Significance Type: {radio_binning_significance_type_updated},  Radio Work Type: {radio_work_type_updated},  Radio Fit Type: {radio_fit_type_updated},  Radio Emission Fit Type: {radio_emission_fit_type_updated}")
@@ -499,7 +555,7 @@ def func_bin_data(event):
 	cfba.stage_four_execution(par_dict_updated, file_name_rev_linear, file_name_rev_binned_updated, dir_name_4, wave_rev, halpha_eq_width_map, sky_rev_file, data_rev_file, err_rev_file, cont_rev_file, fwhm_rev_file, plot_val=False)
 	sys.stdout.flush()
 	time.sleep(0.1)
-	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned_updated, par_dict_updated, physical_axes = physical_axes1, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True)
+	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned_updated, par_dict_updated, physical_axes = True, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
 	ax.cla()
 	im_cl.remove()
 	update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated)
@@ -515,7 +571,7 @@ def func_fit_data(event):
 	sspectral_smoothing_updated = int(1)
 	radio_binning_type_updated = str(radio_binning_type_buttons.value_selected)
 	radio_binning_significance_type_updated = str(radio_binning_significance_type.value_selected)
-	radio_work_type_updated = str('snr_map')
+	radio_work_type_updated = str(radio_display_data_type_buttons.value_selected)
 	radio_fit_type_updated = str(radio_fit_type.value_selected)
 	radio_emission_fit_type_updated = str(radio_emission_fit_type.value_selected)
 	bf.print_cust(f"Current Status: Spectral Smoothing Factor: {sspectral_smoothing_updated},  Binning Quant: {binning_quant_updated},  Radio Binning Type: {radio_binning_type_updated},  Radio Binning Significance Type: {radio_binning_significance_type_updated},  Radio Work Type: {radio_work_type_updated},  Radio Fit Type: {radio_fit_type_updated},  Radio Emission Fit Type: {radio_emission_fit_type_updated}")
@@ -531,7 +587,7 @@ def func_fit_data(event):
 	cfba.stage_four_execution(par_dict_updated, file_name_rev_linear, file_name_rev_binned_updated, dir_name_4, wave_rev, halpha_eq_width_map, sky_rev_file, data_rev_file, err_rev_file, cont_rev_file, fwhm_rev_file, plot_val=False)
 	sys.stdout.flush()
 	time.sleep(0.1)
-	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned_updated, par_dict_updated, physical_axes = physical_axes1, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True)
+	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned_updated, par_dict_updated, physical_axes = True, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
 	ax.cla()
 	im_cl.remove()
 	update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated)
