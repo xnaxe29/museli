@@ -201,6 +201,7 @@ def get_detailed_ppxf_solution(pp, miles, component_rev, gas_names, gas_names_re
 	bestfit_solution_array = pp.bestfit
 	stellar_spectrum_array = (pp.bestfit - pp.gas_bestfit) if (number_of_gas_components) else pp.bestfit
 
+	#print (pp.gas_flux)
 	if (pp.gas_flux) is not None:
 		sol_pp_gas_flux_reshaped = pp.gas_flux
 		sol_pp_gas_flux_err_reshaped = pp.gas_flux_error

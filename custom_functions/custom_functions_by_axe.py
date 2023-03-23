@@ -342,8 +342,22 @@ def fitting_regime(file_name_rev_binned, wave_rev, halpha_eq_width_map, sky_rev_
 	temporary_data_cube = np.zeros([len(bin_num_unique), len(wave_rev), 3])
 	temporary_information_cube = np.zeros([len(bin_num_unique), 2])
 	bar = IncrementalBar('Countdown', max = len(bin_num_unique))
+
+	if ("lick_index_species_list" in par_dict):
+		lick_index_species_list = par_dict['lick_index_species_list']
+	else:
+		lick_index_species_list = [0, 1]
+
+	#bf.print_cust(lick_index_species_list)
+	lick_index_wave11, lick_index_wave12, lick_index_wave21, lick_index_wave22, lick_index_wave31, lick_index_wave32, lick_index_sign, lick_index_species, lick_index_reference = np.genfromtxt(str(par_dict['lick_index_file']), unpack=True, names=True, encoding=None, dtype=None)
+	new_lick_index_array_halpha = np.array([lick_index_wave11[int(lick_index_species_list[int(par_dict['lick_idx_for_halpha'])])], lick_index_wave12[int(lick_index_species_list[int(par_dict['lick_idx_for_halpha'])])], lick_index_wave21[int(lick_index_species_list[int(par_dict['lick_idx_for_halpha'])])], lick_index_wave22[int(lick_index_species_list[int(par_dict['lick_idx_for_halpha'])])], lick_index_wave31[int(lick_index_species_list[int(par_dict['lick_idx_for_halpha'])])], lick_index_wave32[int(lick_index_species_list[int(par_dict['lick_idx_for_halpha'])])]], dtype=float)
+	#bf.print_cust(new_lick_index_array_halpha)
+
+	new_lick_index_array_halpha = new_lick_index_array_halpha * (1.+float(par_dict['redshift_val']))
+
 	for i in range(len(bin_num_unique)):
 		bar.next()
+		#i=100
 		mask = np.in1d(bin_num, [bin_num_unique[i]])
 		flux_tmp = data_rev_file[:, y_axis_binned_rev[mask].astype(int), x_axis_binned_rev[mask].astype(int)]
 		err_tmp = err_rev_file[:, y_axis_binned_rev[mask].astype(int), x_axis_binned_rev[mask].astype(int)]
@@ -354,7 +368,18 @@ def fitting_regime(file_name_rev_binned, wave_rev, halpha_eq_width_map, sky_rev_
 		halpha_ew_val1 = np.nanmedian(halpha_eq_width_map[y_axis_binned_rev[mask].astype(int), x_axis_binned_rev[mask].astype(int)])
 		FWHM_gal1 = np.nanmedian(fwhm_rev_file[:, y_axis_binned_rev[mask].astype(int), x_axis_binned_rev[mask].astype(int)])
 		init_cont1 = np.nansum(cont_tmp, axis=(1))/len(x_axis_binned_rev[mask])
-		wave_fit, flux_fit, flux_err_fit, continuum_fit, result_fit, mask_fit, solution_fit, solution_err_fit = main_fitting_func(wave_rev, flux1, err1, par_dict, halpha_ew_val1, FWHM_gal = FWHM_gal1, flux_sky = flux_sky1, init_cont = init_cont1)
+		halpha_ew_map_array_binned, halpha_ew_map_array_binned_err = bf.get_equivalendth_width_rev_new(wave_rev, flux1, err1, lick_index_array=new_lick_index_array_halpha)
+		'''
+		bf.print_cust(f'{halpha_ew_map_array_binned}, {halpha_ew_map_array_binned_err}')
+		import matplotlib.pyplot as plt
+		plt.errorbar(wave_rev, flux1, yerr=err1, ds='steps-mid', color='tab:blue')
+		for i in range(len(new_lick_index_array_halpha)):
+			plt.axvline(new_lick_index_array_halpha[i], ls='dashed', color='green')
+		plt.show()
+		quit()
+		'''
+		wave_fit, flux_fit, flux_err_fit, continuum_fit, result_fit, mask_fit, solution_fit, solution_err_fit = main_fitting_func(wave_rev, flux1, err1, par_dict, halpha_ew_map_array_binned, FWHM_gal = FWHM_gal1, flux_sky = flux_sky1, init_cont = init_cont1)
+
 		if ('emission' in par_dict['execution_fit_type']):
 			main_emission_result_cube[i,:,0] = solution_fit
 			main_emission_result_cube[i,:,1] = solution_err_fit
@@ -362,7 +387,7 @@ def fitting_regime(file_name_rev_binned, wave_rev, halpha_eq_width_map, sky_rev_
 			main_absorption_result_cube[i,:,0] = solution_fit
 			main_absorption_result_cube[i,:,1] = solution_err_fit
 		else:
-			if (halpha_ew_val1>=float(par_dict['decider_ew'])):
+			if (halpha_ew_map_array_binned>=float(par_dict['decider_ew'])):
 				main_absorption_result_cube[i,:,0] = solution_fit
 				main_absorption_result_cube[i,:,1] = solution_err_fit
 			else:
@@ -398,6 +423,10 @@ def main_fitting_func(wave_rev, flux, err, par_dict, halpha_ew_val, **kwargs):
 			wave_fit, flux_fit, flux_err_fit, continuum_fit, result_fit, mask_fit, solution_fit, solution_err_fit = absorption_fit(wave_rev, flux, err, par_dict, flux_sky = flux_sky1, quiet_val=quiet_run)
 		else:
 			wave_fit, flux_fit, flux_err_fit, continuum_fit, result_fit, mask_fit, solution_fit, solution_err_fit = emission_fit(wave_rev, flux, err, par_dict, FWHM_gal = FWHM_gal1, flux_sky = flux_sky1, init_cont = init_cont1, quiet_val=quiet_run)
+
+	significance_tmp = float(np.nansum(np.abs(flux - flux_sky1)) / len(flux_sky1))
+	solution_fit = np.append(solution_fit, halpha_ew_val)
+	solution_err_fit = np.append(solution_err_fit, significance_tmp)
 	return (wave_fit, flux_fit, flux_err_fit, continuum_fit, result_fit, mask_fit, solution_fit, solution_err_fit)
 
 #wave_fit, flux_fit, flux_err_fit, continuum_fit, result_fit, mask_fit, solution_fit, solution_err_fit = main_fitting_func(wave_rev, flux, err, par_dict, halpha_ew_val, FWHM_gal = FWHM_gal1, flux_sky = flux_sky1, init_cont = init_cont1)
@@ -496,6 +525,8 @@ def emission_fit(wave_rev, flux, err, par_dict, **kwargs):
 				revised_line_flux_err[i] += sol_pp_gas_flux_err_reshaped[j][i]**2
 		revised_line_flux_err = np.sqrt(revised_line_flux_err)
 		'''
+		#print(sol_pp_gas_flux_reshaped)
+		#print(sol_pp_gas_flux_reshaped.shape)
 		revised_line_flux = sol_pp_gas_flux_reshaped
 		revised_line_flux_err = sol_pp_gas_flux_err_reshaped
 		solution_array = np.append(gas_balmer_vel, gas_balmer_sigma)
@@ -519,7 +550,7 @@ def get_output_filenames_and_arrays(dir_name_4, bin_num_unique, wave_rev, par_di
 	main_result_cube_filename = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_binned_') + str(par_dict['binning_type']) + str('_snr_type_') + str(par_dict['voronoi_snr_type']) + str('_quant_') + str(int(par_dict['binning_quant'])) + str('_results_cube') + str('.npy')
 	main_result_cube = np.zeros([len(bin_num_unique), len(wave_rev), 6])
 	main_absorption_result_cube_filename = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_binned_') + str(par_dict['binning_type']) + str('_snr_type_') + str(par_dict['voronoi_snr_type']) + str('_quant_') + str(int(par_dict['binning_quant'])) + str('_custom_absorption_results') + str('.npy')
-	total_count_of_abs_pars = (par_dict['ppxf_stars_comp']*4) + 2 + (par_dict['ppxf_gas_comp']*4) + (len(par_dict['st_age_list_start'])*3) + 2
+	total_count_of_abs_pars = (par_dict['ppxf_stars_comp']*4) + 2 + (par_dict['ppxf_gas_comp']*4) + (len(par_dict['st_age_list_start'])*3) + 3
 	main_absorption_result_cube = np.zeros([len(bin_num_unique), total_count_of_abs_pars, 2])
 	if ('custom'in par_dict['emission_fit_type']):
 		flux = np.ones_like(wave_rev)
@@ -533,7 +564,7 @@ def get_output_filenames_and_arrays(dir_name_4, bin_num_unique, wave_rev, par_di
 		main_emission_result_cube_filename = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_binned_') + str(par_dict['binning_type']) + str('_snr_type_') + str(par_dict['voronoi_snr_type']) + str('_quant_') + str(int(par_dict['binning_quant'])) + str('_emission_type_') + str(par_dict['emission_fit_type'])  + str('_custom_emission_results') + str('.npy')
 		#main_emission_result_cube = np.zeros([len(bin_num_unique), len(popt_init)+len(coeff_init_val)+len(par_dict['center_list'])+1, 2])
         #print (len(amp_array_rev), (len(center_array)*2), 2)
-		main_emission_result_cube = np.zeros([len(bin_num_unique), (len(amp_array_rev)+(len(center_array)*2)+2), 2])
+		main_emission_result_cube = np.zeros([len(bin_num_unique), (len(amp_array_rev)+(len(center_array)*2)+3), 2])
 	elif ('ppxf'in par_dict['emission_fit_type']):
 		if (par_dict['ppxf_gas_comp']<1):
 			par_dict['ppxf_gas_comp']=1
@@ -544,7 +575,9 @@ def get_output_filenames_and_arrays(dir_name_4, bin_num_unique, wave_rev, par_di
 		gas_templates, gas_names, line_wave = util.emission_lines(miles.ln_lam_temp, lam_range_gal, 3.0, tie_balmer=par_dict['ppxf_emission_tie_balmer'], limit_doublets=par_dict['ppxf_emission_limit_doublets'])
 		bf.enablePrint()
 		main_emission_result_cube_filename = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_binned_') + str(par_dict['binning_type']) + str('_snr_type_') + str(par_dict['voronoi_snr_type']) + str('_quant_') + str(int(par_dict['binning_quant'])) + str('_emission_type_') + str(par_dict['emission_fit_type']) + str('_custom_emission_results') + str('.npy')
-		main_emission_result_cube = np.zeros([len(bin_num_unique), int(((4+len(gas_names))*par_dict['ppxf_gas_comp'])+1), 2])
+		#print (gas_names.shape)
+		#print (gas_names)
+		main_emission_result_cube = np.zeros([len(bin_num_unique), int(((4+len(gas_names))*par_dict['ppxf_gas_comp'])+2), 2])
 	return (main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, main_result_cube, main_absorption_result_cube, main_emission_result_cube)
 
 #main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, main_result_cube, main_absorption_result_cube, main_emission_result_cube = get_output_filenames_and_arrays(dir_name_4, bin_num_unique, wave_rev, par_dict)
@@ -560,7 +593,7 @@ def get_output_filenames_and_arrays(dir_name_4, bin_num_unique, wave_rev, par_di
 
 ########################################MAIN_FUNCTION########################################
 
-def stage_five_analysis(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, expanded_hdr_filename, header_rev, expanded_filename, quiet_val=False):
+def stage_five_analysis(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, expanded_hdr_filename, header_rev, expanded_filename, sky_rev_file, quiet_val=False):
 	start_time7 = time.time()
 	bf.print_cust("Executing stage five...", quiet_val=quiet_val)
 	if (os.path.exists(expanded_hdr_filename) or os.path.exists(expanded_filename)):
@@ -573,18 +606,18 @@ def stage_five_analysis(main_result_cube_filename, main_absorption_result_cube_f
 			string_for_deleting2 = str('rm ') + expanded_filename
 			bf.print_cust(string_for_deleting2)
 			os.system(string_for_deleting2)
-			expanded_hdr_filename1, expanded_filename1 = expand_results(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, header_rev, expanded_hdr_filename, expanded_filename)
+			expanded_hdr_filename1, expanded_filename1 = expand_results(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, header_rev, expanded_hdr_filename, expanded_filename, sky_rev_file)
 		else:
 			expanded_hdr_filename1 = expanded_hdr_filename
 			expanded_filename1 = expanded_filename
 	else:
-		expanded_hdr_filename1, expanded_filename1 = expand_results(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, header_rev, expanded_hdr_filename, expanded_filename)
+		expanded_hdr_filename1, expanded_filename1 = expand_results(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, header_rev, expanded_hdr_filename, expanded_filename, sky_rev_file)
 
 	bf.print_cust("Stage five execution complete...", quiet_val=quiet_val)
 	bf.print_cust(f"---STAGE-V took {float(time.time() - start_time7)} seconds ---", quiet_val=quiet_val)
 	return(expanded_hdr_filename1, expanded_filename1)
 
-def expand_results(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, header_rev, expanded_hdr_filename, expanded_filename):
+def expand_results(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, header_rev, expanded_hdr_filename, expanded_filename, sky_rev_file):
 	assert os.path.exists(str(main_result_cube_filename)), f"File: {str(main_result_cube_filename)} not found..."
 	assert os.path.exists(str(main_absorption_result_cube_filename)), f"File: {str(main_absorption_result_cube_filename)} not found..."
 	assert os.path.exists(str(main_emission_result_cube_filename)), f"File: {str(main_emission_result_cube_filename)} not found..."
@@ -663,6 +696,7 @@ def expand_results(main_result_cube_filename, main_absorption_result_cube_filena
 		hf.create_dataset("wave_new",  data=wave_new)
 		hf.create_dataset("ra",  data=ra_unbinned_unique)
 		hf.create_dataset("dec",  data=dec_unbinned_unique)
+		hf.create_dataset("sky",  data=sky_rev_file)
 		hf.create_dataset("expanded_data_cube",  data=expanded_data_cube)
 		hf.create_dataset("expanded_information_cube_absorption",  data=expanded_information_cube_absorption)
 		hf.create_dataset("expanded_information_cube_emission",  data=expanded_information_cube_emission)
@@ -758,12 +792,15 @@ def get_expanded_header_information_emission(wave, par_dict, **kwargs):
 			extra_label.extend([index_cust]*1)
 		header_information_emission.extend(['chi_sq'])
 		extra_label.extend(['-']*1)
+		header_information_emission.extend(['eq_width'])
+		extra_label.extend(['-']*1)
 
 		header_information_emission2 = [str(m)+str(n) for m,n in zip(header_information_emission,extra_label)]
 		header_information_err_emission2 = [s + "_err" for s in header_information_emission2]
 		header_information_emission3 = np.array(header_information_emission2)
 		header_information_err_emission3 = np.array(header_information_err_emission2)
-		header_information_err_emission3[-1] = "amp_length"
+		header_information_err_emission3[-2] = "amp_length"
+		header_information_err_emission3[-1] = "significance"
 	elif ('ppxf'in par_dict_rev['emission_fit_type']):
 		if (par_dict['ppxf_gas_comp']<1):
 			par_dict['ppxf_gas_comp']=1
@@ -801,11 +838,14 @@ def get_expanded_header_information_emission(wave, par_dict, **kwargs):
 		#extra_label.extend(['-']*1)
 		header_information_emission.extend(['chi-sq'])
 		extra_label.extend(['-']*1)
+		header_information_emission.extend(['eq_width'])
+		extra_label.extend(['-']*1)
 		header_information_emission2 = [str(m)+str(n) for m,n in zip(header_information_emission,extra_label)]
 		header_information_err_emission2 = [s + "_err" for s in header_information_emission2]
 		header_information_emission3 = np.array(header_information_emission2)
 		header_information_err_emission3 = np.array(header_information_err_emission2)
-		header_information_err_emission3[-1] = "E(B-V)gas"
+		header_information_err_emission3[-2] = "E(B-V)gas"
+		header_information_err_emission3[-1] = "Significance"
 	return (header_information_emission3, header_information_err_emission3, amp_length)
 
 ###############################GET_EXPANDED_HEADER_INFORMATION_EMISSION###############################
@@ -833,10 +873,13 @@ def get_expanded_information_abs(par_dict):
 	extra_label.extend(par_dict['st_age_unique_end']*3)
 	header_information_absorption.extend(['StAge', 'StMetallicity'])
 	extra_label.extend(['-']*2)
+	header_information_absorption.extend(['eq_width'])
+	extra_label.extend(['-']*1)
 	header_information_absorption2 = [str(m)+str(n) for m,n in zip(header_information_absorption,extra_label)]
 	header_information_err_absorption = [s + "_err" for s in header_information_absorption2]
 	header_information_absorption3 = np.array(header_information_absorption2)
 	header_information_err_absorption3 = np.array(header_information_err_absorption)
+	header_information_err_absorption3[-1] = "Significance"
 	return (header_information_absorption3, header_information_err_absorption)
 
 ###############################GET_EXPANDED_INFORMATION_ABSORPTION###############################

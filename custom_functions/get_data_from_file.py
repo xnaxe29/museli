@@ -611,8 +611,8 @@ def revise_dictionary(par_dict_init, dir_name_6):
 	assert os.path.exists(str(default_emission_file)), f"File: {str(default_emission_file)} not found..."
 
 	par_dict_emission = par_dict_init
-	keys = ['number_of_narrow_components', 'number_of_wide_components', 'stopping_number_for_continuum', 'minimal_tying_factor_variance', 'minimum_amplitude_val', 'maximum_amplitude_val', 'minimum_reddening_val', 'maximum_reddening_val', 'sigma_bound_narrow_min', 'sigma_bound_narrow_max', 'sigma_bound_wide_max', 'poly_bound_val', 'maximum_accepted_reddening', 'e_b_minus_v_init', 'redshift_val', 'window_for_fit', 'multiplicative_factor_for_plot', 'spectral_smoothing', 'ppxf_stars_comp', 'ppxf_gas_comp', 'lick_idx_for_halpha', 'binning_quant', 'ellipse_angle_for_advanced_binning', 'window_for_choosing_snr_in_binning', 'max_ew_width_abs', 'decider_ew', 'num_processes']
-	values = [1, 0, 5000000.0, 1e-3, -1, 6, 1e-4, 2.0, 10.0, 200.0, 5000.0, 1000.0, 2.0, 0.0, 0.0, 2000.0, 10, 1, 1, 1, 4, 10, 0, 100, 200, 0.0, 4]
+	keys = ['number_of_narrow_components', 'number_of_wide_components', 'stopping_number_for_continuum', 'minimal_tying_factor_variance', 'minimum_amplitude_val', 'maximum_amplitude_val', 'minimum_reddening_val', 'maximum_reddening_val', 'sigma_bound_narrow_min', 'sigma_bound_narrow_max', 'sigma_bound_wide_max', 'poly_bound_val', 'maximum_accepted_reddening', 'e_b_minus_v_init', 'redshift_val', 'window_for_fit', 'multiplicative_factor_for_plot', 'spectral_smoothing', 'ppxf_stars_comp', 'ppxf_gas_comp', 'lick_idx_for_halpha', 'binning_quant', 'ellipse_angle_for_advanced_binning', 'window_for_choosing_snr_in_binning', 'max_ew_width_abs', 'allowed_ew_significance', 'decider_ew', 'num_processes', 'contour_count', 'image_allowed_percentile']
+	values = [1, 0, 5000000.0, 1e-3, -1, 6, 1e-4, 2.0, 10.0, 200.0, 5000.0, 1000.0, 2.0, 0.0, 0.0, 2000.0, 10, 1, 1, 1, 6, 10, 0, 100, 100, 0.1, 0.0, 4, 15, 95]
 	for key, value in zip(keys, values):
 		if (key not in par_dict_emission):
 			par_dict_emission[key] = float(value)
@@ -666,7 +666,7 @@ def revise_dictionary(par_dict_init, dir_name_6):
 			par_dict_emission['st_age_list_start'] = par_dict_emission['st_age_list_start']
 			par_dict_emission['st_age_unique_end'] = par_dict_emission['st_age_unique_end']
 
-	default_lick_index_species_list = [65, 69, 73, 74, 82, 85, 90]
+	default_lick_index_species_list = [66, 70, 73, 74, 82, 84, 90, 100]
 	if ('lick_index_species_list' not in par_dict_emission):
 		par_dict_emission['lick_index_species_list'] = list(default_lick_index_species_list)
 

@@ -5,6 +5,7 @@ import scipy as sp
 from scipy import signal
 from scipy import interpolate
 import warnings
+import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -57,9 +58,12 @@ def add_colorbar(mappable):
 	fig = ax.figure
 	divider = make_axes_locatable(ax)
 	cax1 = divider.append_axes("right", size="5%", pad=0.05)
+	#cbar = plt.colorbar(mappable, cax=cax1, drawedges=False, format = matplotlib.ticker.FuncFormatter(lambda x, pos: ''), ticks = matplotlib.ticker.FixedLocator([]))
 	cbar = plt.colorbar(mappable, cax=cax1)
 	cbar.set_ticks(ticker.LogLocator(), update_ticks=True)
 	cbar.ax.tick_params(size=0)
+	#cbar.solids.set_rasterized(True)
+	#cbar.solids.set_edgecolor("face")
 	return cbar
 
 def add_colorbar_lin(mappable):
@@ -67,10 +71,13 @@ def add_colorbar_lin(mappable):
 	ax = mappable.axes
 	fig = ax.figure
 	divider = make_axes_locatable(ax)
-	cax1 = divider.append_axes("right", size="5%", pad=0.05)
+	cax1 = divider.append_axes("right", size="5%", pad=0.55)
+	#cbar = plt.colorbar(mappable, cax=cax1, drawedges=False, format = matplotlib.ticker.FuncFormatter(lambda x, pos: ''), ticks = matplotlib.ticker.FixedLocator([]))
 	cbar = plt.colorbar(mappable, cax=cax1)
 	cbar.set_ticks(ticker.LinearLocator(), update_ticks=True)
 	cbar.ax.tick_params(size=0)
+	#cbar.solids.set_rasterized(True)
+	#cbar.solids.set_edgecolor("face")
 	return cbar
 
 #######################CUSTOM_CREATION_OF_COLORBAR_IN_SUBPLOTS_OF_MATPLOTLIB#######################

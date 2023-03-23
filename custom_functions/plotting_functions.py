@@ -1,4 +1,5 @@
 import numpy as np
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import matplotlib.ticker as ticker
@@ -602,10 +603,13 @@ def ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, **kwa
 	vel_window = kwargs.get('vel_window', 2000) # vel_window
 	lick_index_species = kwargs.get('lick_index_species', np.array(['Hbeta_o', 'Mg1', 'NaD', 'Fe6189', 'Halpha'])) # lick_index_species
 	mean_wave_list = kwargs.get('mean_wave_list', np.array([4864.8735, 5120.541667, 5898.791667, 6170.666667, 6540.166667])) # mean_wave_list
+	abs_wave_list_start = kwargs.get('abs_wave_list_start', np.array([4838.404, 4957.625, 5875.625, 6145., 6455.])) # abs_wave_list_start
+	abs_wave_list_end = kwargs.get('abs_wave_list_end', np.array([4897.445, 5301.125, 5922.125, 6201., 6600.])) # abs_wave_list_end
 	em_index_species = kwargs.get('em_index_species', np.array(['Hbeta', '[OIII]4958', '[OIII]5007', '[NII]6547', 'Halpha', '[NII]6583', '[SII]6716', '[SII]6730'])) # em_index_species
 	em_mean_wave_list = kwargs.get('em_mean_wave_list', np.array([4861.32, 4958.83, 5006.77, 6547.96, 6562.8, 6583.34, 6716.31, 6730.68])) # em_mean_wave_list
 	fig_name_cust = kwargs.get('figname', 'test.pdf') # figname
 	redshift = kwargs.get('redshift', 0.0) # redshift
+	plot_type = kwargs.get('plot_type', 'absorption') # redshift
 
 	lam_gal = lam_gal / (1.+redshift)
 	
@@ -625,7 +629,8 @@ def ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, **kwa
 	ax2 = []
 	ax3 = []
 
-	if (np.any(st_mass_unique)!=0.):
+	#if (np.any(st_mass_unique)!=0.):
+	if plot_type=='absorption':
 		ax2 = plt.subplot(gs[3, :])
 		for i in range(len(mean_wave_list)):
 			ax3 = np.append(ax3, plt.subplot(gs[2, i]))
@@ -652,7 +657,8 @@ def ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, **kwa
 	ax1.set_xlabel(r"Rest Wavelength ($\rm \AA$)", fontsize=size_of_font)
 	ax1.set_ylabel(r"Residuals", fontsize=size_of_font)
 
-	if (np.any(st_mass_unique)!=0.):
+	#if (np.any(st_mass_unique)!=0.):
+	if plot_type=='absorption':
 		label_x_ticks = np.array(["<0.1", "0.1-0.5", "0.5-1.0", "1.0-5.0", "5.0-10.0", ">10.0"])
 		ax2.plot(label_x_ticks, np.log10(st_mass_unique), 'bo', markersize=size_of_font, label='Stellar Mass')
 		ax2.plot(label_x_ticks, np.log10(st_lum_unique), 'r*', markersize=size_of_font, label='Stellar Luminosity')
@@ -662,13 +668,13 @@ def ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, **kwa
 		ax2.tick_params(size=size_of_font)
 		ax2.tick_params(axis='both', labelsize=size_of_font)
 
-		for i in range(len(mean_wave_list)):
+		for i in range(len(abs_wave_list_start)):
 			vel31 = bf.vel_prof(lam_gal, mean_wave_list[i])
-			idx_start = np.searchsorted(vel31, -vel_window)
-			idx_end = np.searchsorted(vel31, vel_window)
-			ax3[i].errorbar(vel31[idx_start:idx_end], galaxy[idx_start:idx_end], yerr=noise[idx_start:idx_end], ds='steps-mid', color='tab:blue')
-			ax3[i].plot(vel31[idx_start:idx_end], bestfit_solution_array[idx_start:idx_end], 'r--')
-			ax3[i].set_xlabel(r"Rel. Velocity (kms$^{-1}$)", fontsize=size_of_font)
+			idx_start = np.searchsorted(lam_gal, abs_wave_list_start[i])
+			idx_end = np.searchsorted(lam_gal, abs_wave_list_end[i])
+			ax3[i].errorbar(lam_gal[idx_start:idx_end], galaxy[idx_start:idx_end], yerr=noise[idx_start:idx_end], ds='steps-mid', color='tab:blue')
+			ax3[i].plot(lam_gal[idx_start:idx_end], bestfit_solution_array[idx_start:idx_end], 'r--')
+			ax3[i].set_xlabel(r"Wavelength ($\AA$)", fontsize=size_of_font)
 			ax3[i].set_title(lick_index_species[i], fontsize=size_of_font)
 			ax3[i].tick_params(axis='both', labelsize=size_of_font)
 		ax3[0].set_ylabel(r"Rel. Flux", fontsize=size_of_font)
