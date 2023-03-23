@@ -162,6 +162,12 @@ header_information_emission = header_information_emission[header_information_emi
 header_information_err_emission = header_information_err_emission[header_information_err_emission != '']
 
 #print (header_information_absorption)
+header_information_absorption[10:16] = ['Age <0.1', '0.1 < Age < 0.5', '0.5 < Age < 1.0', '1.0 < Age < 5.0', '5.0 < Age < 10.0', 'Age > 10.0']
+header_information_absorption[16:22] = ['Age <0.1', '0.1 < Age < 0.5', '0.5 < Age < 1.0', '1.0 < Age < 5.0', '5.0 < Age < 10.0', 'Age > 10.0']
+header_information_absorption[22:28] = ['Age <0.1', '0.1 < Age < 0.5', '0.5 < Age < 1.0', '1.0 < Age < 5.0', '5.0 < Age < 10.0', 'Age > 10.0']
+#print (header_information_absorption)
+#quit()
+
 #print (header_information_emission)
 
 
@@ -171,9 +177,26 @@ with h5py.File(expanded_filename2, 'r') as hf:
 	wave_new2 = hf["wave_new"][:]
 	x_axis_unique = hf["ra"][:]
 	y_axis_unique = hf["dec"][:]
+	sky_spectrum = hf["sky"][:]
 	expanded_data_cube = hf["expanded_data_cube"][:]
 	expanded_information_cube_absorption = hf["expanded_information_cube_absorption"][:]
 	expanded_information_cube_emission = hf["expanded_information_cube_emission"][:]
+
+#'''
+significance_number = np.zeros([expanded_data_cube.shape[1], expanded_data_cube.shape[2]])
+bar = IncrementalBar('Countdown', max = int(expanded_data_cube.shape[1]*expanded_data_cube.shape[2]))
+if (len(sky_spectrum)==int(expanded_data_cube.shape[0])):
+	for i in range(expanded_data_cube.shape[1]):
+		for j in range(expanded_data_cube.shape[2]):
+			bar.next()
+			significance_number[i, j] = float(np.nansum(np.abs(expanded_data_cube[:, i, j, 3] - sky_spectrum)) / int(expanded_data_cube.shape[0]))
+else:
+	for i in range(expanded_data_cube.shape[1]):
+		for j in range(expanded_data_cube.shape[2]):
+			bar.next()
+			significance_number[i, j] = float(np.nansum(np.abs(expanded_data_cube[:, i, j, 3] / expanded_data_cube[:, i, j, 1])) / int(expanded_data_cube.shape[0]))
+#'''
+
 
 
 muse_wcs = WCS(header_original).celestial
@@ -190,8 +213,12 @@ header_information_emission = np.array(np.hstack(header_information_emission.fla
 ra_array = x_axis_unique
 dec_array = y_axis_unique
 #test4 = test3 + str("/post_process_images")
-tmp_linear_filename = test3 + str("/data/tmp_linear_data_rev.dat")
-save_linear_file(header_information_absorption, header_information_emission, expanded_information_cube_absorption, expanded_information_cube_emission, ra_array, dec_array, filename=tmp_linear_filename)
+
+
+#tmp_linear_filename = test3 + str("/data/tmp_linear_data_rev.dat")
+#save_linear_file(header_information_absorption, header_information_emission, expanded_information_cube_absorption, expanded_information_cube_emission, ra_array, dec_array, filename=tmp_linear_filename)
+
+
 map = expanded_information_cube_emission[0, :, :, 0]
 vel_kinemetry_figname = test3 + str("/post_process_images/vel_kinemetry.pdf")
 sigma_kinemetry_figname = test3 + str("/post_process_images/sigma_kinemetry.pdf")
@@ -216,10 +243,13 @@ ax.title.set_text(str(header_information_emission[0]))
 #'''
 
 plot_file_em = expanded_information_cube_emission
-chi_sq_em = expanded_information_cube_emission[-1, :, :, 0]
+chi_sq_em = expanded_information_cube_emission[-2, :, :, 0]
+#significance_number = expanded_information_cube_emission[-1, :, :, 1]
 plot_file_abs = expanded_information_cube_absorption
 chi_sq_abs = expanded_information_cube_absorption[5, :, :, 1]
 plot_file_data = expanded_data_cube
+chi_sq_tot_min = np.nanmin(np.append(chi_sq_em, chi_sq_abs))
+chi_sq_tot_max = np.nanmax(np.append(chi_sq_em, chi_sq_abs))
 
 '''
 plt.imshow(chi_sq_em, origin='lower')
@@ -246,7 +276,7 @@ def update(val):
 		err_updated[err_updated==0] = 1.
 		ratio = data_updated / err_updated
 		plot_data = data_updated
-		plot_data[ratio < significance_val] = np.nan
+		plot_data[significance_number < significance_val] = np.nan
 		plot_data[chi_sq_abs > chi_sq_limit_val] = np.nan
 		im = ax.imshow(plot_data, origin='lower', cmap='viridis')
 		ax.title.set_text(str(header_information_absorption[absorption_val]))
@@ -260,7 +290,7 @@ def update(val):
 		err_updated[err_updated==0] = 1.
 		ratio = data_updated / err_updated
 		plot_data = data_updated
-		plot_data[ratio < significance_val] = np.nan
+		plot_data[significance_number < significance_val] = np.nan
 		plot_data[chi_sq_em > chi_sq_limit_val] = np.nan
 		im = ax.imshow(plot_data, origin='lower', cmap='viridis')
 		ax.title.set_text(str(header_information_emission[emission_val]))
@@ -280,11 +310,11 @@ absorption_slider = Slider(absorption_slider_axes, 'Absorption', 0, len(header_i
 absorption_slider.on_changed(update)
 
 significance_slider_axes = plt.axes([0.7, 0.02, 0.2, 0.05])
-significance_slider = Slider(significance_slider_axes, 'Significance', 1e-5, 10, valinit=1e-5, valfmt="%2.2f")
+significance_slider = Slider(significance_slider_axes, 'Significance', np.nanmin(significance_number), np.nanmax(significance_number), valinit=np.nanmin(significance_number), valfmt="%2.2f")
 significance_slider.on_changed(update)
 
 chi_sq_slider_axes = plt.axes([0.7, 0.9, 0.2, 0.05])
-chi_sq_slider = Slider(chi_sq_slider_axes, 'Chi_sq', 1e-2, 100, valinit=100, valfmt="%2.2f")
+chi_sq_slider = Slider(chi_sq_slider_axes, 'Chi_sq', chi_sq_tot_min, chi_sq_tot_max, valinit=chi_sq_tot_max, valfmt="%2.2f")
 chi_sq_slider.on_changed(update)
 
 
@@ -307,6 +337,7 @@ def func_plot_one_d(event):
 	flux_err = expanded_data_cube[:, iy, ix, 1]
 	cont = expanded_data_cube[:, iy, ix, 2]
 	fit = expanded_data_cube[:, iy, ix, 3]
+	equivalent_width = expanded_information_cube_emission[-1, iy, ix, 0]
 	#new_array = np.array(np.vstack([wave_new2, flux, flux_err, cont, fit]))
 	#np.savetxt('test.dat', new_array)
 	x_pos = int(iy)
@@ -326,7 +357,7 @@ def func_plot_one_d(event):
 	redshift_val = 0.07527116015236746
 	#redshift_val = 0.050200146
 	figname1d_rev = figname1d + str(int(iy)) + str("_") + str(int(ix)) + str(".pdf")
-	pf.ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, st_age_unique=st_age_unique1, st_mass_unique=st_mass_unique1, st_lum_unique=st_lum_unique1, figname=figname1d_rev, redshift=redshift_val)
+	pf.ppxf_figure(lam_gal, galaxy, noise, residuals, bestfit_solution_array, st_age_unique=st_age_unique1, st_mass_unique=st_mass_unique1, st_lum_unique=st_lum_unique1, figname=figname1d_rev, redshift=redshift_val, plot_type='emission')
 plot_one_d_button.on_clicked(func_plot_one_d)
 
 
@@ -352,18 +383,17 @@ def func_make_figure(event):
 		ratio = data_updated / err_updated
 		plot_data = data_updated
 		title_name = str(header_information_absorption[absorption_val])
-		plot_data[ratio < significance_val] = np.nan
+		plot_data[significance_number < significance_val] = np.nan
 		plot_data[chi_sq_abs > chi_sq_limit_val] = np.nan
 		if ('v' in title_name.lower()):
 			plot_data = plot_data - np.nanmedian(plot_data)
-		im_save = ax_save.imshow(plot_data, origin='lower', cmap='viridis')
-		ax_save.title.set_text(title_name)
+		im_save = ax_save.imshow(plot_data, origin='lower', cmap='viridis', vmax=1.0)
+		ax_save.set_title(title_name, fontsize=20, fontweight='bold')
 		figname2d_2 = figname2d + str("_abs_")
 		if ('log' in str(radio_loglin_buttons.value_selected)):
 			im_cl_save = bf.add_colorbar(im_save)
 		else:
 			im_cl_save = bf.add_colorbar_lin(im_save)
-
 	else:
 		data_updated = plot_file_em[emission_val, :, :, 0]
 		err_updated = plot_file_em[emission_val, :, :, 1]
@@ -371,7 +401,7 @@ def func_make_figure(event):
 		ratio = data_updated / err_updated
 		plot_data = data_updated
 		title_name = str(header_information_emission[emission_val])
-		plot_data[ratio < significance_val] = np.nan
+		plot_data[significance_number < significance_val] = np.nan
 		plot_data[chi_sq_em > chi_sq_limit_val] = np.nan
 		if ('v' in title_name.lower()):
 			plot_data = plot_data - np.nanmedian(plot_data)

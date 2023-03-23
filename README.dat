@@ -251,8 +251,11 @@ Allowed values: {10.0 or above}; Default: 2000.0
 43. multiplicative_factor_for_plot: For efficient, time saving spectral line emission fitted plots, one can chose to bin the data separately (fitting would use all spectral points). This binning factor can be defined as the multiplicative_factor_for_plot.
 Allowed values: {1 or above}; Default: 10
 
-43. max_ew_width_abs: Maximum absolute equivalent width of lines in the galaxy spectra. This value will be used to limit failed equivalents width estimations from low SNR and bad spaxels.
+43.1 max_ew_width_abs: Maximum absolute equivalent width of lines in the galaxy spectra. This value will be used to limit failed equivalents width estimations from low SNR and bad spaxels.
 Allowed values: {above 0.0}; Default: 100
+
+43.2 allowed_ew_significance: Minimum absolute allowed equivalent width significance (data/err) of lines in the galaxy spectra. This value will be used to limit failed equivalents width estimations from low SNR and bad spaxels.
+Allowed values: {above 0.0}; Default: 0.1
 
 44. fit_velocity_val: Should the emission line fitting be done with fixed (False) or variable (True) central velocity?
 Allowed values: {True or False}; Default: True
@@ -284,6 +287,9 @@ Allowed values: {Allowed values for central velocity dispersion}; Default: [arra
 53. observed_instrument: Instrument used for observations
 Allowed values: {This will depend on whether the function has been written to analyze the specific instrument data}; Default: VLT-MUSE
 
+54. contour_count: Count for the number of contours to be plotted in MUSELI. Allowed values: Above 2; Default: 15
+
+55. image_allowed_percentile: MUSELI main scatter plot or data/snr is cut for the allowed percentile to remove extreme values. Allowed values: 1 to 100; Default: 95 
 
 
 EMISSION_FITTING_DETAILS:

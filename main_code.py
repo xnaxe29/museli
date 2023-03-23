@@ -171,7 +171,7 @@ else:
 #######################EXECUTING_STAGE_TWO#######################
 
 
-'''
+#'''
 #To obtain EW information from EW data cube
 header_ew_original, header_ew_original_err, data_ew_original_file, err_ew_original_file = hff.open_ifu_fits(file_name_eq_width)
 #print (header_ew_original)
@@ -182,19 +182,19 @@ lick_index_species_rev = np.array(lick_index_species[lick_index_species_list[:]]
 with fits.open(str(str(par_dict['muse_data_filename']))) as hdul:
     header_original = hdul[1].header
 muse_wcs = WCS(header_original).celestial
-#print (lick_index_species_rev)
+print (lick_index_species_rev)
 #names_of_species = str(lick_index_species_rev[:]) + str(mean_wave_list_full.astype(np.int32)[:])
 #print (names_of_species)
 #quit()
 #print (data_ew_original_file.shape[0])
-fig, axs = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True, figsize=(15, 15),subplot_kw=dict(projection=muse_wcs))
-#ax1 = fig.add_subplot(121)
 counter_test = 0
-data_ew_original_file[data_ew_original_file<-1000.] = np.nan
-data_ew_original_file[data_ew_original_file>1000.0] = np.nan
+#data_ew_original_file[data_ew_original_file<-1000.] = np.nan
+#data_ew_original_file[data_ew_original_file>1000.0] = np.nan
 #mask = (data_ew_original_file[4, :, :]<0.0) or (data_ew_original_file[5, :, :]<0.0)
+data_ew_original_file[1, :, :][data_ew_original_file[1, :, :]<0.0] = np.nan
 data_ew_original_file[4, :, :][data_ew_original_file[4, :, :]<0.0] = np.nan
 data_ew_original_file[5, :, :][data_ew_original_file[5, :, :]<0.0] = np.nan
+data_ew_original_file[7, :, :][data_ew_original_file[7, :, :]>0.0] = np.nan
 data_ew_original_file[2, :, :][data_ew_original_file[2, :, :]>0.0] = np.nan
 data_ew_original_file[3, :, :][data_ew_original_file[3, :, :]>0.0] = np.nan
 #significance = np.abs(data_ew_original_file) / err_ew_original_file
@@ -202,24 +202,37 @@ data_ew_original_file[3, :, :][data_ew_original_file[3, :, :]>0.0] = np.nan
 
 #data_ew_original_file = np.abs(data_ew_original_file)
 #data_ew_original_file = data_ew_original_file / 1000.
+data_ew_original_file[data_ew_original_file>100.] = np.nan
+err_ew_original_file[data_ew_original_file>100.] = np.nan
+ew_significance = np.abs(data_ew_original_file / err_ew_original_file)
+#ew_significance[ew_significance<0.1] = np.nan
+#data_ew_original_file[ew_significance<0.1] = np.nan
+halpha_ew = data_ew_original_file[6]
+halpha_ew_err = err_ew_original_file[6]
+hbeta_ew = data_ew_original_file[0]
+mask = (halpha_ew > 0.) & (hbeta_ew < 0.)
+#print (mask.shape)
+#data_ew_original_file[0][mask] = np.nan
+#data_ew_original_file[6][mask] = np.nan
+#data_ew_original_file = ew_significance
 count = 0
-counter_test = [2, 3, 4, 6]
+#counter_test = [0, 2, 3, 6]
+#counter_test = [1, 4, 5, 7]
+counter_test = [0, 1, 3, 4, 5, 6]
 print (data_ew_original_file.shape)
+fig, axs = plt.subplots(nrows=2, ncols=3, sharex=True, sharey=True, figsize=(19, 10),subplot_kw=dict(projection=muse_wcs))
+#ax1 = fig.add_subplot(121)
 for i in range(2):
-    for j in range(2):
-        if ('5007' in  lick_index_species_rev[counter_test[count]]) or ('alpha' in  lick_index_species_rev[counter_test[count]]):
-            #im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], vmin=5, vmax=100, cmap='viridis')
-            im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], cmap='RdBu', vmin=-100, vmax=100)
-        else:
-            #im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], vmin=0.1, vmax=100, cmap='viridis')
-            im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], cmap='RdBu', vmin=-10, vmax=10)
-
+    for j in range(3):
+        im1 = axs[i, j].imshow(data_ew_original_file[counter_test[count], :, :], cmap='RdBu', vmin=-3, vmax=3)
         divider = make_axes_locatable(axs[i, j])
         cax = divider.append_axes('right', size='5%', pad=0.55)
         fig.colorbar(im1, cax=cax, orientation='vertical')
         axs[i, j].set_title(lick_index_species_rev[counter_test[count]])
         #axs[i, j].invert_xaxis()
         #counter_test+=1
+        plt.xticks()
+        plt.yticks()
         count+=1
 
 #ax2 = fig.add_subplot(122)
@@ -231,7 +244,7 @@ for i in range(2):
 #plt.show()
 plt.savefig('test_fig.pdf', dpi=100)
 quit()
-'''
+#'''
 
 #To obtain information from revised data
 bf.print_cust('Loading information from revised data...')
@@ -245,12 +258,24 @@ bf.print_cust('information from revised data loaded...')
 #bf.print_cust(f'{data_ew_original_file.shape}')
 #bf.print_cust(header_ew_original)
 #print (par_dict['lick_idx_for_halpha'])
-halpha_eq_width_map = data_ew_original_file[int(par_dict['lick_idx_for_halpha']), :, :]
 #halpha_eq_width_map = data_ew_original_file[int(par_dict['lick_idx_for_halpha']), :, :]
-halpha_eq_width_err_map = err_ew_original_file[int(par_dict['lick_idx_for_halpha']), :, :]
+#halpha_eq_width_map = data_ew_original_file[int(par_dict['lick_idx_for_halpha']), :, :]
+#halpha_eq_width_err_map = err_ew_original_file[int(par_dict['lick_idx_for_halpha']), :, :]
 #halpha_eq_width_err_map = err_ew_original_file[-1, :, :]
-halpha_eq_width_map[np.abs(halpha_eq_width_map)>200.] = 1e-6
-halpha_eq_width_err_map[np.abs(halpha_eq_width_map)>200.] = 1e-5
+#halpha_eq_width_map[np.abs(halpha_eq_width_map)>200.] = 1e-6
+#halpha_eq_width_err_map[np.abs(halpha_eq_width_map)>200.] = 1e-5
+
+data_ew_original_file[data_ew_original_file>float(par_dict['max_ew_width_abs'])] = 1e-6
+err_ew_original_file[data_ew_original_file>float(par_dict['max_ew_width_abs'])] = 1e-5
+ew_significance = np.abs(data_ew_original_file / err_ew_original_file)
+#ew_significance[ew_significance<0.1] = np.nan
+data_ew_original_file[ew_significance<float(par_dict['allowed_ew_significance'])] = 1e-6
+err_ew_original_file[ew_significance<float(par_dict['allowed_ew_significance'])] = 1e-5
+halpha_eq_width_map = data_ew_original_file[int(par_dict['lick_idx_for_halpha'])]
+halpha_eq_width_err_map = err_ew_original_file[int(par_dict['lick_idx_for_halpha'])]
+#halpha_eq_width_map[halpha_eq_width_map>1.0] = 1e-6
+#halpha_eq_width_err_map[halpha_eq_width_map>1.0] = 1e-5
+halpha_eq_width_map = np.abs(halpha_eq_width_map)
 
 '''
 #par_dict = gdff.revise_dictionary(par_dict)
@@ -308,13 +333,23 @@ file_name_rev_binned = cfba.stage_three_analysis(file_name_rev_linear, dir_name_
 '''
 y1, x1, ra1, dec1, signal11, noise11, signal12, noise12 = np.loadtxt(file_name_rev_linear).T
 fig, axs = plt.subplots(2, figsize=(6,10), sharex=True, sharey=True)
-im1 = axs[0].scatter(x1, y1, c = signal11/noise11, cmap='viridis', vmin=0, vmax=20)
+
+test = signal11/noise11
+test[test>100.0] = np.nan
+im1 = axs[0].scatter(x1, y1, c = test, cmap='viridis')
 axs[0].set_title("SNR")
-add_colorbar_lin(im1)
+pf.add_colorbar_lin(im1)
+
+#test = signal12/noise12
+#test[test>9.0] = np.nan
+#im2 = axs[1].scatter(x1, y1, c = test, cmap='viridis')
+#axs[1].set_title("EW")
+#pf.add_colorbar_lin(im2)
+
 x_new, y_new, signal_new = np.loadtxt(file_name_rev_binned).T
-im2 = axs[1].scatter(x_new, y_new, c = signal_new, cmap='rainbow')
+im2 = axs[1].scatter(x_new, y_new, c = signal_new, cmap='RdBu')
 axs[1].set_title("Binning")
-add_colorbar_lin(im2)
+pf.add_colorbar_lin(im2)
 plt.show()
 quit()
 '''
@@ -392,21 +427,25 @@ quit()
 expanded_filename = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_temporary_extended_data.hdf5')
 expanded_hdr_filename = str(dir_name_4) + str('/') + str(par_dict['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_temporary_extended_hdr.fits')
 
-expanded_hdr_filename1, expanded_filename1 = cfba.stage_five_analysis(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, expanded_hdr_filename, header_rev, expanded_filename)
+expanded_hdr_filename1, expanded_filename1 = cfba.stage_five_analysis(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict, wave_rev, file_name_rev_linear, file_name_rev_binned, expanded_hdr_filename, header_rev, expanded_filename, sky_rev_file)
 
 #######################EXECUTING_STAGE_FIVE#######################
 
-snr_vmin_val1 = 0.1
-snr_vmax_val1 = 20
+#snr_vmin_val1 = 0.1
+#snr_vmax_val1 = 100
 physical_axes1 = True
-contour_count = 20
-x_array_binned, y_array_binned, snr_revised = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = physical_axes1, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True, data_type_requested='snr_map')
+image_allowed_percentile = int(par_dict['image_allowed_percentile'])
+contour_count = int(par_dict['contour_count'])
+
+x_array_binned, y_array_binned, snr_revised = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = physical_axes1, quiet_val=False, return_map=True, data_type_requested='snr_map')
 
 fig, ax = plt.subplots()
 ax.cla()
-im = ax.scatter(y_array_binned, x_array_binned, c = snr_revised, cmap='viridis', vmin=snr_vmin_val1, vmax=snr_vmax_val1, zorder=1)
+snr_revised_percentile = np.percentile(snr_revised, image_allowed_percentile)
+mask = (snr_revised <= snr_revised_percentile)
+im = ax.scatter(y_array_binned[mask], x_array_binned[mask], c = snr_revised[mask], cmap='viridis', zorder=1)
 im_cl = bf.add_colorbar_lin(im)
-e1 = patches.Ellipse((y_array_binned[30], x_array_binned[30]), (10./3600.), (10./3600.), angle=0, linewidth=2, fill=False, zorder=3)
+e1 = patches.Ellipse((y_array_binned[50], -10.4), (10./3600.), (10./3600.), angle=0, linewidth=2, fill=False, zorder=3)
 ax.add_patch(e1)
 
 if par_dict['two_dimensional_map_name'] == 'default':
@@ -440,9 +479,11 @@ check_im.on_clicked(update)
 def update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated):
 	bf.print_cust('Updating Figure...')
 	global im_cl
-	im = ax.scatter(y_array_binned_updated, x_array_binned_updated, c = snr_revised_updated, cmap='viridis', vmin=snr_vmin_val1, vmax=snr_vmax_val1, zorder=1)
+	snr_revised_updated_percentile = np.percentile(snr_revised_updated, image_allowed_percentile)
+	mask = (snr_revised_updated <= snr_revised_updated_percentile)
+	im = ax.scatter(y_array_binned_updated[mask], x_array_binned_updated[mask], c = snr_revised_updated[mask], cmap='viridis', zorder=1)
 	im_cl = bf.add_colorbar_lin(im)
-	e1 = patches.Ellipse((y_array_binned_updated[30], x_array_binned_updated[30]), (10./3600.), (10./3600.), angle=0, linewidth=2, fill=False, zorder=3)
+	e1 = patches.Ellipse((y_array_binned_updated[50], -10.4), (10./3600.), (10./3600.), angle=0, linewidth=2, fill=False, zorder=3)
 	ax.add_patch(e1)
 	im2 = ax.contour(ra_rev, dec_rev, two_d_map, contour_count, cmap='Greys', alpha=1, zorder=2)
 	# Define the update function
@@ -469,7 +510,7 @@ sbinning_quant_slider = Slider(binning_quant_slider_axes, 'binning_quant', 2, 10
 #sspectral_smoothing_slider = Slider(spectral_smoothing_slider_axes, 'spectral_smoothing', 1, 100, valinit=int(par_dict['spectral_smoothing']), valfmt="%i")
 #sspectral_smoothing_slider.on_changed(update)
 
-binning_type_buttons_axes = plt.axes([0.01, 0.2, 0.1, 0.2])
+binning_type_buttons_axes = plt.axes([0.01, 0.2, 0.08, 0.2])
 dict_binning_type_buttons = {'None', 'square', 'voronoi', 'advanced'}
 active_binning_type = list(dict_binning_type_buttons).index(str(par_dict['binning_type']))
 #print (active_binning_type)
@@ -480,13 +521,13 @@ def func_binning_type_buttons(label_binning_type_buttons):
 radio_binning_type_buttons.on_clicked(func_binning_type_buttons)
 
 
-display_data_type_buttons_axes = plt.axes([0.60, 0.00, 0.1, 0.075])
+display_data_type_buttons_axes = plt.axes([0.60, 0.00, 0.08, 0.075])
 dict_display_data_type_buttons = {'snr_map', 'median'}
 radio_display_data_type_buttons = RadioButtons(display_data_type_buttons_axes, ('snr', 'median'), active=0)
 def func_display_data_type_buttons(label_display_data_type_buttons):
 	bf.print_cust(label_display_data_type_buttons)
 	radio_work_type_updated = str(radio_display_data_type_buttons.value_selected)
-	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = True, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
+	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned, par_dict, physical_axes = True, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
 	ax.cla()
 	im_cl.remove()
 	update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated)
@@ -494,9 +535,9 @@ radio_display_data_type_buttons.on_clicked(func_display_data_type_buttons)
 
 
 
-binning_significance_type_buttons_axes = plt.axes([0.01, 0.1, 0.1, 0.1])
+binning_significance_type_buttons_axes = plt.axes([0.01, 0.1, 0.08, 0.1])
 dict_binning_significance_type = {'snr', 'ew'}
-active_binning_significance_type = list(dict_binning_significance_type).index(str(par_dict['voronoi_snr_type']))
+#active_binning_significance_type = list(dict_binning_significance_type).index(str(par_dict['voronoi_snr_type']))
 #print (active_binning_significance_type)
 #print (list(dict_binning_significance_type)[active_binning_significance_type])
 radio_binning_significance_type = RadioButtons(binning_significance_type_buttons_axes, ('snr', 'ew'), active=0)
@@ -511,7 +552,7 @@ radio_binning_significance_type.on_clicked(func_binning_significance_type)
 #	bf.print_cust(label_work_type)
 #radio_work_type.on_clicked(func_work_type)
 
-fit_type_buttons_axes = plt.axes([0.01, 0.5, 0.1, 0.15])
+fit_type_buttons_axes = plt.axes([0.01, 0.5, 0.08, 0.15])
 dict_fit_type = {'auto', 'emission', 'absorption'}
 active_dict_fit_type = list(dict_fit_type).index(str(par_dict['execution_fit_type']))
 #print (active_dict_fit_type)
@@ -521,7 +562,7 @@ def func_fit_type(label_fit_type):
 	bf.print_cust(label_fit_type)
 radio_fit_type.on_clicked(func_fit_type)
 
-emission_fit_type_buttons_axes = plt.axes([0.01, 0.4, 0.1, 0.1])
+emission_fit_type_buttons_axes = plt.axes([0.01, 0.4, 0.08, 0.1])
 dict_emission_fit_type = {'custom', 'ppxf'}
 active_dict_emission_fit_type = list(dict_emission_fit_type).index(str(par_dict['emission_fit_type']))
 #print (active_dict_emission_fit_type)
@@ -534,7 +575,7 @@ radio_emission_fit_type.on_clicked(func_emission_fit_type)
 
 
 
-bin_data_buttons_axes = plt.axes([0.01, 0.88, 0.1, 0.02])
+bin_data_buttons_axes = plt.axes([0.01, 0.88, 0.08, 0.02])
 bin_data_button = Button(bin_data_buttons_axes, 'Bin Data')
 def func_bin_data(event):
 	bf.print_cust('Binning Data...')
@@ -555,14 +596,14 @@ def func_bin_data(event):
 	cfba.stage_four_execution(par_dict_updated, file_name_rev_linear, file_name_rev_binned_updated, dir_name_4, wave_rev, halpha_eq_width_map, sky_rev_file, data_rev_file, err_rev_file, cont_rev_file, fwhm_rev_file, plot_val=False)
 	sys.stdout.flush()
 	time.sleep(0.1)
-	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned_updated, par_dict_updated, physical_axes = True, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
+	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned_updated, par_dict_updated, physical_axes = True, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
 	ax.cla()
 	im_cl.remove()
 	update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated)
 bin_data_button.on_clicked(func_bin_data)
 
 
-fit_data_buttons_axes = plt.axes([0.01, 0.82, 0.1, 0.02])
+fit_data_buttons_axes = plt.axes([0.01, 0.82, 0.08, 0.02])
 fit_data_button = Button(fit_data_buttons_axes, 'Fit Data')
 def func_fit_data(event):
 	bf.print_cust('Binning Data...')
@@ -587,7 +628,7 @@ def func_fit_data(event):
 	cfba.stage_four_execution(par_dict_updated, file_name_rev_linear, file_name_rev_binned_updated, dir_name_4, wave_rev, halpha_eq_width_map, sky_rev_file, data_rev_file, err_rev_file, cont_rev_file, fwhm_rev_file, plot_val=False)
 	sys.stdout.flush()
 	time.sleep(0.1)
-	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned_updated, par_dict_updated, physical_axes = True, snr_vmin_val = snr_vmin_val1, snr_vmax_val = snr_vmax_val1, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
+	x_array_binned_updated, y_array_binned_updated, snr_revised_updated = pf.get_snr_map_revised(file_name_rev_linear, file_name_rev_binned_updated, par_dict_updated, physical_axes = True, quiet_val=False, return_map=True, data_type_requested=radio_work_type_updated)
 	ax.cla()
 	im_cl.remove()
 	update_fig(ax, x_array_binned_updated, y_array_binned_updated, snr_revised_updated)
@@ -597,7 +638,7 @@ fit_data_button.on_clicked(func_fit_data)
 
 
 
-show_results_buttons_axes = plt.axes([0.01, 0.76, 0.1, 0.02])
+show_results_buttons_axes = plt.axes([0.01, 0.76, 0.08, 0.02])
 show_results_button = Button(show_results_buttons_axes, 'Show Results')
 def func_show_results(event):
 	bf.print_cust('Show Results...')
@@ -624,7 +665,7 @@ def func_show_results(event):
 	expanded_filename = str(dir_name_4) + str('/') + str(par_dict_updated['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_temporary_extended_data.hdf5')
 	expanded_hdr_filename = str(dir_name_4) + str('/') + str(par_dict_updated['muse_data_filename']).split("/")[-1].replace('.fits', '') + str('_temporary_extended_hdr.fits')
 	if (os.path.exists(main_result_cube_filename) and os.path.exists(main_absorption_result_cube_filename) and os.path.exists(main_emission_result_cube_filename)):
-		expanded_hdr_filename1, expanded_filename1 = cfba.stage_five_analysis(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict_updated, wave_rev, file_name_rev_linear, file_name_rev_binned_updated, expanded_hdr_filename, header_rev, expanded_filename)
+		expanded_hdr_filename1, expanded_filename1 = cfba.stage_five_analysis(main_result_cube_filename, main_absorption_result_cube_filename, main_emission_result_cube_filename, par_dict_updated, wave_rev, file_name_rev_linear, file_name_rev_binned_updated, expanded_hdr_filename, header_rev, expanded_filename, sky_rev_file)
 		code_name = "/show_results.py "
 		str_to_execute = str("python3 ") + str(sys.argv[2]) + str(code_name) + str(expanded_hdr_filename1) + str(" ") + str(expanded_filename1)
 		bf.print_cust(f"Executing... {str_to_execute}")
