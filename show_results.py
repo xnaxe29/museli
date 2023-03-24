@@ -1,5 +1,5 @@
-import wx
-import matplotlib.backends.backend_wxagg
+#import wx
+#import matplotlib.backends.backend_wxagg
 import sys
 import time
 import matplotlib.pyplot as plt
