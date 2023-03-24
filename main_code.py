@@ -171,7 +171,7 @@ else:
 #######################EXECUTING_STAGE_TWO#######################
 
 
-#'''
+'''
 #To obtain EW information from EW data cube
 header_ew_original, header_ew_original_err, data_ew_original_file, err_ew_original_file = hff.open_ifu_fits(file_name_eq_width)
 #print (header_ew_original)
@@ -244,7 +244,7 @@ for i in range(2):
 #plt.show()
 plt.savefig('test_fig.pdf', dpi=100)
 quit()
-#'''
+'''
 
 #To obtain information from revised data
 bf.print_cust('Loading information from revised data...')
